@@ -25,6 +25,15 @@
 #   unused-packages = true
 
 
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.2.0"
+
+[[constraint]]
+  name = "github.com/sleep2death/evio"
+  branch="master"
+  source="github.com/sleep2death/evio"
+
 [prune]
   go-tests = true
   unused-packages = true

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/tidwall/evio"
+	"github.com/sleep2death/evio"
 )
 
 var log = logrus.New()

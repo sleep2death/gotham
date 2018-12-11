@@ -26,15 +26,16 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:cb176e4b023e47d6255cfe046234bce8b64b0c170e7cc74451f02acd4c6eb221"
-  name = "github.com/tidwall/evio"
+  branch = "master"
+  digest = "1:5c5c06b3966fc4d95a6992701904fcca3299ba3bc49a0910266b99a76dbf3d6c"
+  name = "github.com/sleep2death/evio"
   packages = [
     ".",
     "internal",
   ]
   pruneopts = "UT"
-  revision = "ea610eff86981249be649bbdcedbf409a2db2173"
-  version = "v1.0.1"
+  revision = "68d9aabdca5d6bab621f59e06ee0b2875a8f7f08"
+  source = "github.com/sleep2death/evio"
 
 [[projects]]
   branch = "master"
@@ -60,7 +61,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/sirupsen/logrus",
-    "github.com/tidwall/evio",
+    "github.com/sleep2death/evio",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
