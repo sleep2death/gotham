@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"time"
 
@@ -18,18 +18,25 @@ func main() {
 		}
 	}()
 
-	count := 0
-	for count < 10 {
-		_, err := net.Dial("tcp", "localhost:8101")
+	var conns []net.Conn
+
+	for count := 0; count < 10; count++ {
+		conn, err := net.Dial("tcp", "localhost:8101")
+		conns = append(conns, conn)
 
 		if err != nil {
 			log.Panic(err)
 		}
 
-		time.Sleep(time.Second * time.Duration(rand.Intn(3)))
-
-		count++
+		// time.Sleep(time.Second * time.Duration(rand.Intn(3)))
 	}
 
-	time.Sleep(time.Second)
+	for index, conn := range conns {
+		str := fmt.Sprintf("Hello, Gotham, from conn: %d\n", index)
+		conn.Write([]byte(str))
+	}
+
+	time.Sleep(time.Second * 10)
+
+	fmt.Println(gotham.Count())
 }

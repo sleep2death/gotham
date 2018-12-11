@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -11,6 +12,7 @@ import (
 )
 
 var log = logrus.New()
+var numConn int32
 
 // Config of the server
 type Config struct {
@@ -78,6 +80,13 @@ func initEvents(numLoops int) evio.Events {
 	return events
 }
 
+// Count the connected conns
+func Count() int32 {
+	return atomic.LoadInt32(&numConn)
+}
+
+// Serving fires when the server can accept connections. The server
+// parameter has information and various utilities.
 func serving(server evio.Server) (action evio.Action) {
 	log.WithFields(logrus.Fields{
 		"address":  server.Addrs,
@@ -86,16 +95,35 @@ func serving(server evio.Server) (action evio.Action) {
 	return
 }
 
+// Opened fires when a new connection has opened.
+// The info parameter has information about the connection such as
+// it's local and remote address.
+// Use the out return value to write data to the connection.
+// The opts return value is used to set connection options.
 func opened(c evio.Conn) (out []byte, opts evio.Options, action evio.Action) {
 	log.WithFields(logrus.Fields{
 		"local":     c.LocalAddr(),
 		"remote":    c.RemoteAddr(),
 		"addrIndex": c.AddrIndex(),
 	}).Debug("Accepet a client")
+
+	opts.TCPKeepAlive = time.Minute * 5
+	opts.ReuseInputBuffer = true
+
+	atomic.AddInt32(&numConn, 1)
+
 	return
 }
 
 func closed(c evio.Conn, err error) (action evio.Action) {
+	atomic.AddInt32(&numConn, -1)
+
+	log.Debug("connection closed")
+
+	if err != nil {
+		log.Errorln("connection error:", err)
+	}
+
 	return
 }
 
@@ -104,6 +132,7 @@ func detached(c evio.Conn, rwc io.ReadWriteCloser) (action evio.Action) {
 }
 
 func data(c evio.Conn, in []byte) (out []byte, action evio.Action) {
+	log.Info(string(in))
 	return
 }
 
