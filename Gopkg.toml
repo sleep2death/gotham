@@ -31,7 +31,7 @@
 
 [[constraint]]
   name = "github.com/sleep2death/evio"
-  branch="master"
+  branch="self"
   source="github.com/sleep2death/evio"
 
 [prune]

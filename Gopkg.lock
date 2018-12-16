@@ -26,15 +26,15 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:5c5c06b3966fc4d95a6992701904fcca3299ba3bc49a0910266b99a76dbf3d6c"
+  branch = "self"
+  digest = "1:709ced55cf055c50746fd3d8eb8b8291c3168725d68d80a3cf20549a87c1a4a8"
   name = "github.com/sleep2death/evio"
   packages = [
     ".",
     "internal",
   ]
   pruneopts = "UT"
-  revision = "68d9aabdca5d6bab621f59e06ee0b2875a8f7f08"
+  revision = "0ea493f9f271fc09473dbcc47ef010889c9113f4"
   source = "github.com/sleep2death/evio"
 
 [[projects]]
