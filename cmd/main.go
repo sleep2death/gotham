@@ -2,15 +2,35 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net"
-	"time"
-
 	"github.com/sleep2death/gotham"
+	"log"
+	"math/rand"
+	"net"
+	"strconv"
+	"time"
 )
+
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
+
+func stringWithCharset(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+func randstr(length int) string {
+	return stringWithCharset(length, charset)
+}
 
 func main() {
 	cfg := gotham.Default()
+
 	go func() {
 		err := gotham.Serve(cfg)
 		if err != nil {
@@ -20,23 +40,27 @@ func main() {
 
 	var conns []net.Conn
 
-	for count := 0; count < 10; count++ {
-		conn, err := net.Dial("tcp", "localhost:8101")
+	for count := 0; count < 3; count++ {
+		conn, err := net.Dial("tcp", "localhost:8202")
 		conns = append(conns, conn)
 
 		if err != nil {
 			log.Panic(err)
 		}
 
+	}
+
+	time.Sleep(time.Second * 1)
+
+	for i, conn := range conns {
+		for j := 0; j < 10; j++ {
+			str := randstr(rand.Intn(16)) + " --- " + strconv.Itoa(i)
+			msg := []byte(str)
+			conn.Write(gotham.WriteFrame(msg))
+		}
 		// time.Sleep(time.Second * time.Duration(rand.Intn(3)))
 	}
 
-	for index, conn := range conns {
-		str := fmt.Sprintf("Hello, Gotham, from conn: %d\n", index)
-		conn.Write([]byte(str))
-	}
-
-	time.Sleep(time.Second * 10)
-
+	time.Sleep(time.Second * 1)
 	fmt.Println(gotham.Count())
 }
