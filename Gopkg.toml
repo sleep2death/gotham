@@ -37,3 +37,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "1.2.0"

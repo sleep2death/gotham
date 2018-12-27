@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/sleep2death/gotham"
+	"github.com/sleep2death/gotham/pb"
 	"log"
 	"math/rand"
 	"net"
@@ -55,8 +57,10 @@ func main() {
 	for i, conn := range conns {
 		for j := 0; j < 10; j++ {
 			str := randstr(rand.Intn(16)) + " --- " + strconv.Itoa(i)
-			msg := []byte(str)
-			conn.Write(gotham.WriteFrame(msg))
+			msg := &pb.Talk{Str: str}
+			// msg := []byte(str)
+			data, _ := proto.Marshal(msg)
+			conn.Write(gotham.WriteFrame(data))
 		}
 		// time.Sleep(time.Second * time.Duration(rand.Intn(3)))
 	}

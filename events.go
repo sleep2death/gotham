@@ -6,8 +6,10 @@ import (
 	"time"
 
 	// "github.com/luci/luci-go/common/data/recordio"
+	"github.com/golang/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"github.com/sleep2death/evio"
+	"github.com/sleep2death/gotham/pb"
 )
 
 var accepted int32
@@ -103,7 +105,10 @@ func data(c evio.Conn, in []byte) (out []byte, action evio.Action) {
 	msgs, leftover := readFrames(data)
 
 	for _, msg := range msgs {
-		log.Info(string(msg))
+		// TODO: handle incoming messages here
+		talk := &pb.Talk{}
+		proto.Unmarshal(msg, talk)
+		log.Info(talk.Str)
 	}
 
 	if len(leftover) > 0 {
