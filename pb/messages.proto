@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package pb;
+
+message Talk {
+    string str = 1;
+}
+
+message Ping {
+    google.protobuf.Timestamp timestamp = 1;
+}
+
+message Pong {
+    google.protobuf.Timestamp timestamp = 1;
+}

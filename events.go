@@ -114,9 +114,7 @@ func data(c evio.Conn, in []byte) (out []byte, action evio.Action) {
 	if len(leftover) > 0 {
 		is.End(leftover)
 	}
-
 	// log.Info(string(f))
-
 	return
 }
 
