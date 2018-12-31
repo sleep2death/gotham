@@ -1,70 +1,53 @@
 package main
 
 import (
-	"fmt"
-	"github.com/golang/protobuf/proto"
-	"github.com/sleep2death/gotham"
-	"github.com/sleep2death/gotham/pb"
-	"log"
 	"math/rand"
 	"net"
-	"strconv"
 	"time"
+
+	"github.com/sleep2death/gotham"
 )
 
-const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-var seededRand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
-
-func stringWithCharset(length int, charset string) string {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}
-	return string(b)
-}
-
-func randstr(length int) string {
-	return stringWithCharset(length, charset)
-}
-
 func main() {
-	cfg := gotham.Default()
+	addr1 := ":4000"
+	ln1, err := net.Listen("tcp", addr1)
 
-	go func() {
-		err := gotham.Serve(cfg)
-		if err != nil {
-			log.Panic(err)
-		}
-	}()
+	addr2 := ":4002"
+	ln2, err := net.Listen("tcp", addr2)
 
-	var conns []net.Conn
-
-	for count := 0; count < 3; count++ {
-		conn, err := net.Dial("tcp", "localhost:8202")
-		conns = append(conns, conn)
-
-		if err != nil {
-			log.Panic(err)
-		}
-
+	if err != nil {
+		panic(err)
 	}
 
-	time.Sleep(time.Second * 1)
+	server := &gotham.Server{}
+	server.IdleTimeout = time.Minute * 5
 
-	for i, conn := range conns {
-		for j := 0; j < 10; j++ {
-			str := randstr(rand.Intn(16)) + " --- " + strconv.Itoa(i)
-			msg := &pb.Talk{Str: str}
-			// msg := []byte(str)
-			data, _ := proto.Marshal(msg)
-			conn.Write(gotham.WriteFrame(data))
+	go server.Serve(ln1)
+	go server.Serve(ln2)
+
+	numClients := 10
+
+	for i := 0; i < numClients; i++ {
+		var conn net.Conn
+
+		if l := rand.Intn(2); l == 1 {
+			conn, _ = net.DialTimeout("tcp", addr1, time.Minute*5)
+		} else {
+			conn, _ = net.DialTimeout("tcp", addr2, time.Minute*5)
 		}
-		// time.Sleep(time.Second * time.Duration(rand.Intn(3)))
+
+		for j := 0; j < 1; j++ {
+			if r := rand.Intn(2); r == 1 {
+				data := []byte("Hello")
+				conn.Write(gotham.WriteFrame(data))
+			} else {
+				data := []byte("GoodBye")
+				conn.Write(gotham.WriteFrame(data))
+			}
+		}
 	}
 
-	time.Sleep(time.Second * 1)
-	fmt.Println(gotham.Count())
+	time.Sleep(time.Second * 5)
+
+	// go server.Shutdown()
 }
