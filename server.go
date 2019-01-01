@@ -1,7 +1,6 @@
 package gotham
 
 import (
-	"context"
 	"errors"
 	"log"
 	"net"
@@ -243,7 +242,7 @@ var shutdownPollInterval = 500 * time.Millisecond
 //
 // Once Shutdown has been called on a server, it may not be reused;
 // future calls to methods such as Serve will return ErrServerClosed.
-func (srv *Server) Shutdown(ctx context.Context) error {
+func (srv *Server) Shutdown() error {
 	atomic.StoreInt32(&srv.inShutdown, 1)
 
 	srv.mu.Lock()
@@ -258,12 +257,12 @@ func (srv *Server) Shutdown(ctx context.Context) error {
 	defer ticker.Stop()
 	for {
 		if srv.closeIdleConns() {
+			srv.logf("shutting done!")
 			return lnerr
 		}
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
 		case <-ticker.C:
+			srv.logf("waiting on %v connections", len(srv.activeConn))
 		}
 	}
 }

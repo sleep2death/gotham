@@ -2,7 +2,6 @@ package gotham
 
 import (
 	"bufio"
-	"encoding/binary"
 	"errors"
 	"io"
 	"net"
@@ -19,6 +18,7 @@ var ErrAbortHandler = errors.New("net/tcp: abort Handler")
 type ConnState int
 
 const (
+	hdrLen = 4
 	// StateNew represents a new connection that is expected to
 	StateNew ConnState = iota
 
@@ -136,48 +136,55 @@ func (c *conn) serve() {
 			c.server.logf("tcp: panic serving %v: %v\n%s", c.remoteAddr, err, buf)
 		}
 		// close the connection
+		// it will put the reader&writer back to pool also
 		c.close()
 		// untrack the connection
 		c.setState(c.rwc, StateClosed)
 	}()
 
+	// wrap the underline conn with bufio reader&writer
+	// sync.pool inside
 	c.bufr = newBufioReader(c.rwc)
 	c.bufw = newBufioWriter(c.rwc)
 
-	header := make([]byte, 4)
-
 	for {
-		_, err := io.ReadFull(c.bufr, header)
-		if err != nil {
-			panic("header reading error: " + err.Error())
+		fh, err := readFrameHeader(c.bufr)
+		// _, err := io.ReadFull(c.bufr, header)
+
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			panic(err)
+		} else if err != nil {
+			return
 		}
 
-		size := binary.BigEndian.Uint32(header)
+		// TODO: size validation need to be implemented
+		// size := binary.BigEndian.Uint16(header)
 
-		if size == 0 {
-			c.server.logf("idle")
-			c.setState(c.rwc, StateIdle)
+		if fh.Length == 0 {
+			// not enough data for future reading
 			continue
 		}
 
-		msg := make([]byte, size)
-		_, err = io.ReadFull(c.bufr, msg)
-
-		if err != nil {
-			panic("body reading error: " + err.Error())
-		}
-
 		c.setState(c.rwc, StateActive)
-		c.server.logf("active: %s", msg)
 
-		if d := c.server.IdleTimeout; d != 0 {
-			c.rwc.SetReadDeadline(time.Now().Add(d))
-			if _, err := c.bufr.Peek(4); err != nil {
-				c.server.logf("peek error: %s", err.Error())
-				continue
-			}
+		body := make([]byte, fh.Length)
+		_, err = io.ReadFull(c.bufr, body)
+
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			panic(err)
+		} else if err != nil {
+			return
 		}
 
-		c.rwc.SetReadDeadline(time.Time{})
+		// TODO: message handler here
+		c.server.logf("msg >%s", body)
+
+		if d := c.server.idleTimeout(); d != 0 {
+			c.rwc.SetReadDeadline(time.Now().Add(d))
+		} else {
+			c.rwc.SetReadDeadline(time.Time{})
+		}
+
+		c.setState(c.rwc, StateIdle)
 	}
 }

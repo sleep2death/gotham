@@ -1,60 +1,76 @@
 package gotham
 
 import (
+	"encoding/binary"
 	"math/rand"
 	"net"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestServe(t *testing.T) {
-	addr := ":4000"
-	ln, err := net.Listen("tcp", addr)
+	addr1 := ":4000"
+	ln1, err := net.Listen("tcp", addr1)
+
+	addr2 := ":4002"
+	ln2, err := net.Listen("tcp", addr2)
 
 	if err != nil {
 		panic(err)
 	}
 
-	// connection count
-	// var count uint32
-
-	// evts := Events{
-	// 	Serving: func(server Server) (action Action) {
-	// 		assert.Equal(t, server.Addr.Network(), "tcp")
-	// 		assert.Equal(t, server.Addr.String(), addr)
-	// 		return None
-	// 	},
-	// 	Opened: func(c Conn) (out []byte, opts Options, action Action) {
-	// 		atomic.AddUint32(&count, 1)
-	// 		opts = Options{
-	// 			ReuseInputBuffer: true,
-	// 			TCPKeepAlive:     time.Minute * 5,
-	// 		}
-	// 		action = None
-	// 		out = nil
-	// 		return
-	// 	},
-	// 	Data: func(c Conn, in []byte) (out []byte, action Action) {
-	// 		t.Log(string(in))
-	// 		return
-	// 	},
-	// }
-
 	server := &Server{}
-	go server.Serve(ln)
-	t.Log("serving start at >>>", addr)
+	server.ReadTimeout = time.Minute
 
-	numClients := 100
+	go server.Serve(ln1)
+	go server.Serve(ln2)
 
-	for i := 0; i < numClients; i++ {
-		conn, _ := net.DialTimeout("tcp", addr, time.Minute*5)
-		if r := rand.Intn(2); r == 1 {
-			conn.Write([]byte("Hello"))
-		} else {
-			conn.Write([]byte("GoodBye"))
+	numClients := 2
+	numWrites := 100
+
+	go func() {
+		for i := 0; i < numClients; i++ {
+			var conn net.Conn
+
+			if l := rand.Intn(2); l == 1 {
+				conn, _ = net.DialTimeout("tcp", addr1, time.Minute*5)
+			} else {
+				conn, _ = net.DialTimeout("tcp", addr2, time.Minute*5)
+			}
+
+			go func(i int) {
+				for j := 0; j < numWrites; j++ {
+					if r := rand.Intn(2); r == 1 {
+						data := []byte("Hello > " + strconv.Itoa(i) + "-" + strconv.Itoa(j))
+						// conn.Write(WriteFrame(data))
+						WriteData(conn, data)
+					} else {
+						data := []byte("Goodbye > " + strconv.Itoa(i) + "-" + strconv.Itoa(j))
+						// conn.Write(WriteFrame(data))
+						WriteData(conn, data)
+					}
+
+					time.Sleep(time.Millisecond * 10)
+				}
+			}(i)
 		}
-	}
+	}()
 
-	time.Sleep(time.Second * 1)
-	// assert.Equal(t, uint32(numClients), atomic.LoadUint32(&count))
+	time.Sleep(time.Millisecond * 200)
+
+	server.Shutdown()
+
+	assert.Equal(t, len(server.activeConn), 0)
+}
+
+func WriteFrame(msg []byte) (data []byte) {
+	sizeBuf := make([]byte, 2)
+	binary.BigEndian.PutUint16(sizeBuf, uint16(len(msg)))
+
+	msg = append(sizeBuf, msg...)
+	data = append(data, msg...)
+	return
 }
