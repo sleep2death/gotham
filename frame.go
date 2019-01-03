@@ -1,6 +1,7 @@
 package gotham
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -52,16 +53,16 @@ func (f Flags) Has(v Flags) bool {
 // Frame-specific FrameHeader flag bits.
 const (
 	// check flag for validating the frame
-	FlagFrameAck Flags = 0x1
+	FlagFrameAck Flags = 0x10
 
 	// Data Frame
-	FlagDataEndStream Flags = 0x10
+	// FlagDataEndStream Flags = 0x10
 
 	// Settings Frame
-	FlagSettingsAck Flags = 0x10
+	// FlagSettingsAck Flags = 0x10
 
 	// Ping Frame
-	FlagPingAck Flags = 0x10
+	// FlagPingAck Flags = 0x10
 )
 
 // ErrFrameTooLarge is returned from Framer.ReadFrame when the peer
@@ -104,9 +105,9 @@ func (fh *FrameHeader) validate() error {
 }
 
 // WriteData writes a data frame.
-func WriteData(w io.Writer, data []byte) error {
+func WriteData(w *bufio.Writer, data []byte) (err error) {
 	var flags Flags
-	flags |= FlagDataEndStream
+	// flags |= FlagDataEndStream
 	flags |= FlagFrameAck
 
 	length := len(data)
@@ -124,15 +125,20 @@ func WriteData(w io.Writer, data []byte) error {
 	wbuf := append(header[:frameHeaderLen], data...)
 
 	n, err := w.Write(wbuf)
+
 	if err == nil && n != len(wbuf) {
 		err = io.ErrShortWrite
+	} else if err != nil {
+		return
 	}
+
+	err = w.Flush()
 
 	return err
 }
 
 // ReadFrameHeader from the given io reader
-func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
+func ReadFrameHeader(r *bufio.Reader) (FrameHeader, error) {
 	pbuf := fhBytes.Get().(*[]byte)
 	defer fhBytes.Put(pbuf)
 

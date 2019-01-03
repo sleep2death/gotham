@@ -40,6 +40,7 @@ type Server struct {
 // Serve the given listener
 func (srv *Server) Serve(l net.Listener) error {
 	l = &onceCloseListener{Listener: l}
+
 	defer func() {
 		if err := l.Close(); err != nil {
 			panic(err)
