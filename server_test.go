@@ -52,9 +52,9 @@ func TestServe(t *testing.T) {
 	go listen(ln1)
 	go listen(ln2)
 
-	numClients := 3
-	numWrites := 10
-	interval := time.Millisecond * 10
+	numClients := 5                   // clients num
+	numWrites := 10                   // write num with each client
+	interval := time.Millisecond * 10 // write interval
 
 	go func() {
 		for i := 0; i < numClients; i++ {
@@ -86,12 +86,16 @@ func TestServe(t *testing.T) {
 		}
 	}()
 
+	// not enough time to complete the data writing,
+	// so we can test the shutdown func is going to work properly
 	time.Sleep(time.Millisecond * 200)
+
 	_ = server.Shutdown()
 
 	assert.Equal(t, len(server.activeConn), 0)
 
-	// add one when send, minus one when revieved
+	// plus one when writer a msg, minus one when read,
+	// so if all the write/read(s) are functional, the count should be ZERO
 	assert.Equal(t, atomic.LoadInt32(&countA), int32(0))
 	assert.Equal(t, atomic.LoadInt32(&countB), int32(0))
 }

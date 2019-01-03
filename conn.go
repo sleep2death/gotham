@@ -39,8 +39,7 @@ type conn struct {
 
 	// rwc is the underlying network connection.
 	// This is never wrapped by other types and is the value given out
-	// to CloseNotifier callers. It is usually of type *net.TCPConn or
-	// *tls.Conn.
+	// to CloseNotifier callers. It is usually of type *net.TCPConn
 	rwc net.Conn
 
 	// remoteAddr is rwc.RemoteAddr().String(). It is not populated synchronously
@@ -159,6 +158,7 @@ func (c *conn) serve() {
 		}
 	}
 
+	// conn loop start
 	for {
 		fh, err := ReadFrameHeader(c.bufr)
 		rErr(err)
@@ -181,12 +181,16 @@ func (c *conn) serve() {
 		c.server.ServeTCP(c.bufw, fh, fb)
 
 		if d := c.server.idleTimeout(); d != 0 {
-			_ = c.rwc.SetReadDeadline(time.Now().Add(d))
+			err = c.rwc.SetReadDeadline(time.Now().Add(d))
 		} else {
-			_ = c.rwc.SetReadDeadline(time.Time{})
+			err = c.rwc.SetReadDeadline(time.Time{})
 		}
 
 		// set underline conn back to idle mode
 		c.setState(c.rwc, StateIdle)
+
+		if err != nil {
+			panic(err)
+		}
 	}
 }
