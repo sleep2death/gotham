@@ -132,7 +132,7 @@ func (c *conn) serve() {
 
 	defer func() {
 		// recover from reading panic, if failed log the err
-		if err := recover(); err != nil && err != ErrAbortHandler {
+		if err := recover(); err != nil && err != ErrAbortHandler && c.server.shuttingDown() == false {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
@@ -150,18 +150,15 @@ func (c *conn) serve() {
 	c.bufr = newBufioReader(c.rwc)
 	c.bufw = newBufioWriter(c.rwc)
 
-	rErr := func(err error) {
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			panic(err)
-		} else if err != nil {
-			panic("unexpected reading error:" + err.Error())
-		}
-	}
-
 	// conn loop start
 	for {
 		fh, err := ReadFrameHeader(c.bufr)
-		rErr(err)
+
+		if err == io.EOF {
+			continue
+		} else if err != nil {
+			panic(err)
+		}
 
 		// set underline conn to active mode
 		c.setState(c.rwc, StateActive)
@@ -174,11 +171,18 @@ func (c *conn) serve() {
 		fb := make([]byte, fh.Length)
 
 		_, err = io.ReadFull(c.bufr, fb)
-		rErr(err)
+
+		if err == io.EOF {
+			continue
+		} else if err != nil {
+			panic(err)
+		}
 
 		// TODO: message handler here
 		// c.server.logf("msg<%s", fb)
-		c.server.ServeTCP(c.bufw, fh, fb)
+		if c.server.ServeTCP != nil {
+			c.server.ServeTCP(c.bufw, fh, fb)
+		}
 
 		if d := c.server.idleTimeout(); d != 0 {
 			err = c.rwc.SetReadDeadline(time.Now().Add(d))

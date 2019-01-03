@@ -43,7 +43,7 @@ func TestServe(t *testing.T) {
 	}
 
 	listen := func(ln net.Listener) {
-		if err := server.Serve(ln); err != nil {
+		if err = server.Serve(ln); err != nil {
 			// it is going to throw an error, when the server finally closed
 			fmt.Println(ln.Addr(), err.Error())
 		}
@@ -52,18 +52,22 @@ func TestServe(t *testing.T) {
 	go listen(ln1)
 	go listen(ln2)
 
-	numClients := 5                   // clients num
-	numWrites := 10                   // write num with each client
-	interval := time.Millisecond * 10 // write interval
+	numClients := 2500                 // clients num
+	numWrites := 100                   // write num with each client
+	interval := time.Millisecond * 100 // write interval
 
 	go func() {
 		for i := 0; i < numClients; i++ {
 			var conn net.Conn
 
 			if l := rand.Intn(2); l == 1 {
-				conn, _ = net.DialTimeout("tcp", addr1, time.Minute*5)
+				conn, err = net.DialTimeout("tcp", addr1, time.Minute*5)
 			} else {
-				conn, _ = net.DialTimeout("tcp", addr2, time.Minute*5)
+				conn, err = net.DialTimeout("tcp", addr2, time.Minute*5)
+			}
+
+			if err != nil {
+				panic(err)
 			}
 
 			for j := 0; j < numWrites; j++ {
@@ -82,13 +86,14 @@ func TestServe(t *testing.T) {
 					_ = WriteData(writer, data)
 					time.Sleep(interval)
 				}(i, j)
+				time.Sleep(interval)
 			}
 		}
 	}()
 
 	// not enough time to complete the data writing,
 	// so we can test the shutdown func is going to work properly
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 1200)
 
 	_ = server.Shutdown()
 
