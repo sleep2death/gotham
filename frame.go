@@ -51,24 +51,30 @@ func (f Flags) Has(v Flags) bool {
 
 // Frame-specific FrameHeader flag bits.
 const (
+	// check flag for validating the frame
+	FlagFrameAck Flags = 0x1
+
 	// Data Frame
-	FlagDataEndStream Flags = 0x1
+	FlagDataEndStream Flags = 0x10
 
 	// Settings Frame
-	FlagSettingsAck Flags = 0x1
+	FlagSettingsAck Flags = 0x10
 
 	// Ping Frame
-	FlagPingAck Flags = 0x1
+	FlagPingAck Flags = 0x10
 )
 
 // ErrFrameTooLarge is returned from Framer.ReadFrame when the peer
 // sends a frame that is larger than declared with SetMaxReadFrameSize.
 var ErrFrameTooLarge = errors.New("tcp: frame too large")
+
+// ErrFrameFlags is returned from ReadFrame when Flags.has returned false
+var ErrFrameFlags = errors.New("tcp: frame flags error")
+
 var logReads, logWrites bool
 
 // FrameHeader store the reading data header
 type FrameHeader struct {
-	valid bool // caller can access []byte fields in the Frame
 	// Type is the 1 byte frame type. There are ten standard frame
 	// types, but extension frame types may be written by WriteRawFrame
 	// and will be returned by ReadFrame (as UnknownFrame).
@@ -82,13 +88,51 @@ type FrameHeader struct {
 	Length uint32
 }
 
-func (h *FrameHeader) checkValid() {
-	if !h.valid {
-		panic("Frame accessor called on non-owned Frame")
+func (fh *FrameHeader) validate() error {
+	// frame body size check
+	if fh.Length > maxFrameSize {
+		return ErrFrameTooLarge
 	}
+
+	if fh.Flags.Has(FlagFrameAck) == false {
+		return ErrFrameFlags
+	}
+
+	// TODO: specific frame type check
+
+	return nil
 }
 
-func readFrameHeader(r io.Reader) (FrameHeader, error) {
+// WriteData writes a data frame.
+func WriteData(w io.Writer, data []byte) error {
+	var flags Flags
+	flags |= FlagDataEndStream
+	flags |= FlagFrameAck
+
+	length := len(data)
+	if length >= (1 << 24) {
+		return ErrFrameTooLarge
+	}
+
+	header := [frameHeaderLen]byte{
+		byte(length >> 16),
+		byte(length >> 8),
+		byte(length),
+		byte(FrameData),
+		byte(flags),
+	}
+	wbuf := append(header[:frameHeaderLen], data...)
+
+	n, err := w.Write(wbuf)
+	if err == nil && n != len(wbuf) {
+		err = io.ErrShortWrite
+	}
+
+	return err
+}
+
+// ReadFrameHeader from the given io reader
+func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
 	pbuf := fhBytes.Get().(*[]byte)
 	defer fhBytes.Put(pbuf)
 
@@ -100,47 +144,17 @@ func readFrameHeader(r io.Reader) (FrameHeader, error) {
 		return FrameHeader{}, err
 	}
 
-	return FrameHeader{
+	fh := FrameHeader{
 		Length: (uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2])),
 		Type:   FrameType(buf[3]),
 		Flags:  Flags(buf[4]),
-		// TODO: frameid check
-		// StreamID: binary.BigEndian.Uint32(buf[5:]) & (1<<31 - 1),
-		valid: true,
-	}, nil
-}
-
-// WriteData writes a DATA frame.
-func WriteData(w io.Writer, data []byte) error {
-	var flags Flags
-	flags |= FlagDataEndStream
-
-	var wbuf []byte
-
-	wbuf = append(wbuf[:], data...)
-
-	length := len(wbuf)
-	if length >= (1 << 24) {
-		return ErrFrameTooLarge
 	}
 
-	wbuf = append([]byte{
-		byte(length >> 16),
-		byte(length >> 8),
-		byte(length),
-		byte(FrameData),
-		byte(flags),
-	}, wbuf...)
-
-	n, err := w.Write(wbuf)
-	if err == nil && n != len(wbuf) {
-		err = io.ErrShortWrite
-	}
-
-	return err
+	err = fh.validate()
+	return fh, err
 }
 
-// frame header bytes.
+// frame header bytes pool.
 // Used only by ReadFrameHeader.
 var fhBytes = sync.Pool{
 	New: func() interface{} {

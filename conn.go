@@ -108,7 +108,9 @@ func (c *conn) finalFlush() {
 	}
 
 	if c.bufw != nil {
-		c.bufw.Flush()
+		if err := c.bufw.Flush(); err != nil {
+			panic(err)
+		}
 		// Steal the bufio.Writer (~4KB worth of memory) and its associated
 		// writer for a future connection.
 		putBufioWriter(c.bufw)
@@ -119,7 +121,9 @@ func (c *conn) finalFlush() {
 // Close the connection.
 func (c *conn) close() {
 	c.finalFlush()
-	c.rwc.Close()
+	if err := c.rwc.Close(); err != nil {
+		c.server.logf(err.Error())
+	}
 }
 
 // Serve a new connection.
@@ -136,55 +140,53 @@ func (c *conn) serve() {
 			c.server.logf("tcp: panic serving %v: %v\n%s", c.remoteAddr, err, buf)
 		}
 		// close the connection
-		// it will put the reader&writer back to pool also
+		// it will flush the writer, and put the reader&writer back to pool
 		c.close()
 		// untrack the connection
 		c.setState(c.rwc, StateClosed)
 	}()
 
 	// wrap the underline conn with bufio reader&writer
-	// sync.pool inside
+	// sync pool inside
 	c.bufr = newBufioReader(c.rwc)
 	c.bufw = newBufioWriter(c.rwc)
 
-	for {
-		fh, err := readFrameHeader(c.bufr)
-		// _, err := io.ReadFull(c.bufr, header)
-
+	rErr := func(err error) {
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			panic(err)
 		} else if err != nil {
-			return
+			panic("unexpected reading error:" + err.Error())
 		}
+	}
 
-		// TODO: size validation need to be implemented
-		// size := binary.BigEndian.Uint16(header)
+	for {
+		fh, err := ReadFrameHeader(c.bufr)
+		rErr(err)
+
+		// set underline conn to active mode
+		c.setState(c.rwc, StateActive)
 
 		if fh.Length == 0 {
 			// not enough data for future reading
 			continue
 		}
 
-		c.setState(c.rwc, StateActive)
+		fb := make([]byte, fh.Length)
 
-		body := make([]byte, fh.Length)
-		_, err = io.ReadFull(c.bufr, body)
-
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			panic(err)
-		} else if err != nil {
-			return
-		}
+		_, err = io.ReadFull(c.bufr, fb)
+		rErr(err)
 
 		// TODO: message handler here
-		c.server.logf("msg >%s", body)
+		// c.server.logf("msg<%s", fb)
+		c.server.ServeTCP(c.bufw, fh, fb)
 
 		if d := c.server.idleTimeout(); d != 0 {
-			c.rwc.SetReadDeadline(time.Now().Add(d))
+			_ = c.rwc.SetReadDeadline(time.Now().Add(d))
 		} else {
-			c.rwc.SetReadDeadline(time.Time{})
+			_ = c.rwc.SetReadDeadline(time.Time{})
 		}
 
+		// set underline conn back to idle mode
 		c.setState(c.rwc, StateIdle)
 	}
 }

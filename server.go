@@ -2,6 +2,7 @@ package gotham
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -31,12 +32,19 @@ type Server struct {
 	activeConn map[*conn]struct{}
 	doneChan   chan struct{}
 	onShutdown []func()
+
+	// ServeTCP
+	ServeTCP func(writer io.Writer, fh FrameHeader, fb []byte)
 }
 
 // Serve the given listener
 func (srv *Server) Serve(l net.Listener) error {
 	l = &onceCloseListener{Listener: l}
-	defer l.Close()
+	defer func() {
+		if err := l.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	if !srv.trackListener(&l, true) {
 		return ErrServerClosed
@@ -196,7 +204,9 @@ func (srv *Server) Close() error {
 	srv.closeDoneChanLocked()
 	err := srv.closeListenersLocked()
 	for c := range srv.activeConn {
-		c.rwc.Close()
+		if cerr := c.rwc.Close(); cerr != nil {
+			c.server.logf(cerr.Error())
+		}
 		delete(srv.activeConn, c)
 	}
 	return err
@@ -253,11 +263,12 @@ func (srv *Server) Shutdown() error {
 	}
 	srv.mu.Unlock()
 
+	srv.logf("start to shutdown...")
+
 	ticker := time.NewTicker(shutdownPollInterval)
 	defer ticker.Stop()
 	for {
 		if srv.closeIdleConns() {
-			srv.logf("shutting done!")
 			return lnerr
 		}
 		select {
@@ -287,7 +298,9 @@ func (srv *Server) closeIdleConns() bool {
 			quiescent = false
 			continue
 		}
-		c.rwc.Close()
+		if err := c.rwc.Close(); err != nil {
+			c.server.logf(err.Error())
+		}
 		delete(srv.activeConn, c)
 	}
 	return quiescent

@@ -1,7 +1,9 @@
 package gotham
 
 import (
+	"bufio"
 	"encoding/binary"
+	"io"
 	"math/rand"
 	"net"
 	"strconv"
@@ -25,11 +27,15 @@ func TestServe(t *testing.T) {
 	server := &Server{}
 	server.ReadTimeout = time.Minute
 
+	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
+	}
+
 	go server.Serve(ln1)
 	go server.Serve(ln2)
 
-	numClients := 2
-	numWrites := 100
+	numClients := 3
+	numWrites := 10
+	interval := time.Millisecond * 10
 
 	go func() {
 		for i := 0; i < numClients; i++ {
@@ -41,25 +47,27 @@ func TestServe(t *testing.T) {
 				conn, _ = net.DialTimeout("tcp", addr2, time.Minute*5)
 			}
 
-			go func(i int) {
-				for j := 0; j < numWrites; j++ {
-					if r := rand.Intn(2); r == 1 {
-						data := []byte("Hello > " + strconv.Itoa(i) + "-" + strconv.Itoa(j))
-						// conn.Write(WriteFrame(data))
-						WriteData(conn, data)
+			for j := 0; j < numWrites; j++ {
+				r := rand.Intn(2)
+				var data []byte
+				writer := bufio.NewWriter(conn)
+				go func(i int, j int) {
+					if r = rand.Intn(2); r == 1 {
+						data = []byte("Hello>" + strconv.Itoa(i) + "-" + strconv.Itoa(j))
 					} else {
-						data := []byte("Goodbye > " + strconv.Itoa(i) + "-" + strconv.Itoa(j))
-						// conn.Write(WriteFrame(data))
-						WriteData(conn, data)
+						data = []byte("Goodbye>" + strconv.Itoa(i) + "-" + strconv.Itoa(j))
 					}
 
-					time.Sleep(time.Millisecond * 10)
-				}
-			}(i)
+					WriteData(writer, data)
+					writer.Flush()
+
+					time.Sleep(interval)
+				}(i, j)
+			}
 		}
 	}()
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 2000)
 
 	server.Shutdown()
 
