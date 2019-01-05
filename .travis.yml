@@ -2,5 +2,17 @@ language: go
 go:
  - 1.11.x
 
+# Force-enable Go modules. This will be unnecessary when Go 1.12 lands.
+env:
+  - GO111MODULE=on
+ 
+# Only clone the most recent commit.
+git:
+  depth: 1
+
+# Skip the install step. Don't `go get` dependencies. Only build with the code
+# in vendor/
+install: true
+
 script:
  - go test -v ./...
