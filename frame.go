@@ -1,7 +1,6 @@
 package gotham
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -105,7 +104,7 @@ func (fh *FrameHeader) validate() error {
 }
 
 // WriteData writes a data frame.
-func WriteData(w *bufio.Writer, data []byte) (err error) {
+func WriteData(w io.Writer, data []byte) (err error) {
 	var flags Flags
 	// flags |= FlagDataEndStream
 	flags |= FlagFrameAck
@@ -132,13 +131,11 @@ func WriteData(w *bufio.Writer, data []byte) (err error) {
 		return
 	}
 
-	err = w.Flush()
-
 	return err
 }
 
 // ReadFrameHeader from the given io reader
-func ReadFrameHeader(r *bufio.Reader) (FrameHeader, error) {
+func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
 	pbuf := fhBytes.Get().(*[]byte)
 	defer fhBytes.Put(pbuf)
 

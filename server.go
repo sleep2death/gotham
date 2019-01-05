@@ -11,7 +11,7 @@ import (
 )
 
 // ErrServerClosed is returned by the Server's Serve,
-var ErrServerClosed = errors.New("http: Server closed")
+var ErrServerClosed = errors.New("tcp: Server closed")
 
 // Server instance
 type Server struct {
@@ -205,9 +205,7 @@ func (srv *Server) Close() error {
 	srv.closeDoneChanLocked()
 	err := srv.closeListenersLocked()
 	for c := range srv.activeConn {
-		if cerr := c.rwc.Close(); cerr != nil {
-			c.server.logf(cerr.Error())
-		}
+		_ = c.rwc.Close()
 		delete(srv.activeConn, c)
 	}
 	return err
@@ -254,6 +252,8 @@ var shutdownPollInterval = 500 * time.Millisecond
 // Once Shutdown has been called on a server, it may not be reused;
 // future calls to methods such as Serve will return ErrServerClosed.
 func (srv *Server) Shutdown() error {
+	srv.logf("Start to shutdown...")
+
 	atomic.StoreInt32(&srv.inShutdown, 1)
 
 	srv.mu.Lock()
@@ -264,12 +264,11 @@ func (srv *Server) Shutdown() error {
 	}
 	srv.mu.Unlock()
 
-	srv.logf("start to shutdown...")
-
 	ticker := time.NewTicker(shutdownPollInterval)
 	defer ticker.Stop()
 	for {
 		if srv.closeIdleConns() {
+			srv.logf("Shutdown completed")
 			return lnerr
 		}
 		select {
@@ -299,9 +298,8 @@ func (srv *Server) closeIdleConns() bool {
 			quiescent = false
 			continue
 		}
-		if err := c.rwc.Close(); err != nil {
-			c.server.logf(err.Error())
-		}
+
+		_ = c.rwc.Close()
 		delete(srv.activeConn, c)
 	}
 	return quiescent

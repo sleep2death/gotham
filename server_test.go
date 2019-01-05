@@ -2,12 +2,10 @@ package gotham
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"math/rand"
 	"net"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -16,14 +14,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	addr1                       = ":4000"
+	addr2                       = ":4001"
+	countA, countB, totalWrites int32
+	dialCount                   = 50 // clients num
+	writeCount                  = 50 // write num with each client
+	stopChan                    = make(chan struct{})
+	dialInterval                = time.Millisecond * 1
+	writeInterval               = time.Millisecond * 1
+	testDuration                = time.Millisecond * 75
+)
+
 func TestServe(t *testing.T) {
-	var countA int32
-	var countB int32
-
-	addr1 := ":4000"
 	ln1, err := net.Listen("tcp", addr1)
-
-	addr2 := ":4001"
 	ln2, err := net.Listen("tcp", addr2)
 
 	if err != nil {
@@ -35,10 +39,13 @@ func TestServe(t *testing.T) {
 
 	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
 		str := string(fb)
+
 		if strings.Index(str, "Hello") >= 0 {
 			atomic.AddInt32(&countA, -1)
 		} else if strings.Index(str, "Goodbye") >= 0 {
 			atomic.AddInt32(&countB, -1)
+		} else {
+			t.Log("invalid data")
 		}
 	}
 
@@ -49,67 +56,73 @@ func TestServe(t *testing.T) {
 		}
 	}
 
+	// serve two listners
 	go listen(ln1)
 	go listen(ln2)
 
-	numClients := 2500                 // clients num
-	numWrites := 100                   // write num with each client
-	interval := time.Millisecond * 100 // write interval
+	// interval := time.Millisecond // write and connect interval
+	// ticker := time.NewTicker(interval)
 
-	go func() {
-		for i := 0; i < numClients; i++ {
-			var conn net.Conn
-
-			if l := rand.Intn(2); l == 1 {
-				conn, err = net.DialTimeout("tcp", addr1, time.Minute*5)
-			} else {
-				conn, err = net.DialTimeout("tcp", addr2, time.Minute*5)
-			}
-
-			if err != nil {
-				panic(err)
-			}
-
-			for j := 0; j < numWrites; j++ {
-				r := rand.Intn(2)
-				var data []byte
-				writer := bufio.NewWriter(conn)
-				go func(i int, j int) {
-					if r = rand.Intn(2); r == 1 {
-						data = []byte("Hello>" + strconv.Itoa(i) + "-" + strconv.Itoa(j))
-						atomic.AddInt32(&countA, 1)
-					} else {
-						data = []byte("Goodbye>" + strconv.Itoa(i) + "-" + strconv.Itoa(j))
-						atomic.AddInt32(&countB, 1)
-					}
-
-					_ = WriteData(writer, data)
-					time.Sleep(interval)
-				}(i, j)
-				time.Sleep(interval)
-			}
-		}
-	}()
+	go dial()
 
 	// not enough time to complete the data writing,
 	// so we can test the shutdown func is going to work properly
-	time.Sleep(time.Millisecond * 1200)
-
+	time.Sleep(testDuration)
+	// stop all writing...
+	close(stopChan)
+	t.Logf("total message writes: %d/%d", atomic.LoadInt32(&totalWrites), dialCount*writeCount)
+	// shutdown all clients goroutines
 	_ = server.Shutdown()
-
-	assert.Equal(t, len(server.activeConn), 0)
 
 	// plus one when writer a msg, minus one when read,
 	// so if all the write/read(s) are functional, the count should be ZERO
-	assert.Equal(t, atomic.LoadInt32(&countA), int32(0))
-	assert.Equal(t, atomic.LoadInt32(&countB), int32(0))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&countA))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&countB))
 }
 
-func WriteFrame(msg []byte) (data []byte) {
-	sizeBuf := make([]byte, 2)
-	binary.BigEndian.PutUint16(sizeBuf, uint16(len(msg)))
+func dial() {
+	for i := 0; i < dialCount; i++ {
+		var conn net.Conn
+		var err error
 
-	msg = append(sizeBuf, msg...)
-	data = append(data, msg...)
-	return
+		if l := rand.Intn(2); l == 1 {
+			conn, err = net.DialTimeout("tcp", addr1, time.Minute*5)
+		} else {
+			conn, err = net.DialTimeout("tcp", addr2, time.Minute*5)
+		}
+		// if connection refused, then stop
+		if err != nil {
+			return
+		}
+
+		w := bufio.NewWriter(conn)
+		go write(w)
+		time.Sleep(dialInterval)
+	}
+}
+
+func write(w *bufio.Writer) {
+	for j := 0; j < writeCount; j++ {
+		select {
+		case <-stopChan:
+			// fmt.Println("stop chan revieced")
+			return
+		default:
+		}
+
+		var data []byte
+		if r := rand.Intn(2); r == 1 {
+			data = []byte("Hello")
+			atomic.AddInt32(&countA, 1)
+		} else {
+			data = []byte("Goodbye")
+			atomic.AddInt32(&countB, 1)
+		}
+
+		_ = WriteData(w, data)
+		_ = w.Flush()
+
+		atomic.AddInt32(&totalWrites, 1)
+		time.Sleep(writeInterval)
+	}
 }

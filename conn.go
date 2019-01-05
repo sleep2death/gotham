@@ -2,7 +2,6 @@ package gotham
 
 import (
 	"bufio"
-	"errors"
 	"io"
 	"net"
 	"runtime"
@@ -11,14 +10,10 @@ import (
 	"time"
 )
 
-// ErrAbortHandler is a sentinel panic value to abort a handler.
-var ErrAbortHandler = errors.New("net/tcp: abort Handler")
-
 // A ConnState represents the state of a client connection to a server.
 type ConnState int
 
 const (
-	hdrLen = 4
 	// StateNew represents a new connection that is expected to
 	StateNew ConnState = iota
 
@@ -120,9 +115,7 @@ func (c *conn) finalFlush() {
 // Close the connection.
 func (c *conn) close() {
 	c.finalFlush()
-	if err := c.rwc.Close(); err != nil {
-		c.server.logf(err.Error())
-	}
+	_ = c.rwc.Close()
 }
 
 // Serve a new connection.
@@ -132,7 +125,7 @@ func (c *conn) serve() {
 
 	defer func() {
 		// recover from reading panic, if failed log the err
-		if err := recover(); err != nil && err != ErrAbortHandler && c.server.shuttingDown() == false {
+		if err := recover(); err != nil && c.server.shuttingDown() == false {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
@@ -154,9 +147,8 @@ func (c *conn) serve() {
 	for {
 		fh, err := ReadFrameHeader(c.bufr)
 
-		if err == io.EOF {
-			continue
-		} else if err != nil {
+		// it's ok to continue, when reached the EOF
+		if err != nil && err != io.EOF {
 			panic(err)
 		}
 
@@ -172,9 +164,8 @@ func (c *conn) serve() {
 
 		_, err = io.ReadFull(c.bufr, fb)
 
-		if err == io.EOF {
-			continue
-		} else if err != nil {
+		// it's ok to continue, when reached the EOF
+		if err != nil && err != io.EOF {
 			panic(err)
 		}
 
