@@ -47,6 +47,7 @@ func (srv *Server) Serve(l net.Listener) error {
 		}
 	}()
 
+	// serve multiple listeners
 	if !srv.trackListener(&l, true) {
 		return ErrServerClosed
 	}
@@ -54,7 +55,6 @@ func (srv *Server) Serve(l net.Listener) error {
 
 	var tempDelay time.Duration // how long to sleep on accept failure
 
-	// TODO: multiple listeners need to be supported
 	for {
 		rw, e := l.Accept()
 		if e != nil {

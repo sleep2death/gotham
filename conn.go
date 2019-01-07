@@ -56,9 +56,6 @@ type conn struct {
 	bufw *bufio.Writer
 
 	curState struct{ atomic uint64 } // packed (unixtime<<8|uint8(ConnState))
-
-	// mu guards hijackedv
-	mu sync.Mutex
 }
 
 var stateName = map[ConnState]string{
@@ -157,10 +154,10 @@ func (c *conn) serve() {
 		// set underline conn to active mode
 		c.setState(c.rwc, StateActive)
 
-		if fh.Length == 0 {
-			// not enough data for future reading
-			continue
-		}
+		// if fh.Length == 0 {
+		// 	// not enough data for future reading
+		// 	continue
+		// }
 
 		fb := make([]byte, fh.Length)
 
@@ -262,9 +259,7 @@ var logReads, logWrites bool
 
 // FrameHeader store the reading data header
 type FrameHeader struct {
-	// Type is the 1 byte frame type. There are ten standard frame
-	// types, but extension frame types may be written by WriteRawFrame
-	// and will be returned by ReadFrame (as UnknownFrame).
+	// Type is the 1 byte frame type.
 	Type FrameType
 	// Flags are the 1 byte of 8 potential bit flags per frame.
 	// They are specific to the frame type.
@@ -281,12 +276,12 @@ func (fh *FrameHeader) validate() error {
 		return ErrFrameTooLarge
 	}
 
+	// frameack flag check for validating the data
 	if fh.Flags.Has(FlagFrameAck) == false {
 		return ErrFrameFlags
 	}
 
 	// TODO: specific frame type check
-
 	return nil
 }
 
