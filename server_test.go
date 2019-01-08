@@ -89,6 +89,7 @@ const (
 
 func dial(t dialType) {
 	for i := 0; i < dialCount; i++ {
+
 		var conn net.Conn
 		var err error
 
@@ -121,7 +122,6 @@ func writeLoop(w *bufio.Writer) {
 	for j := 0; j < writeCount; j++ {
 		select {
 		case <-stopChan:
-			// fmt.Println("stop chan revieced")
 			return
 		default:
 		}
@@ -180,10 +180,12 @@ func TestEcho(t *testing.T) {
 
 	go dial(Echo)
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 1)
 
 	close(stopChan)
 	server.Shutdown()
+
+	assert.Equal(t, atomic.LoadInt32(&countA), atomic.LoadInt32(&countB))
 	t.Logf("PING count:%d, PONG count:%d", atomic.LoadInt32(&countA), atomic.LoadInt32(&countB))
 }
 
@@ -203,17 +205,12 @@ func listen(server *Server, ln net.Listener) {
 
 func read(w *bufio.Writer, r *bufio.Reader) {
 	for {
-		select {
-		case <-stopChan:
-			// fmt.Println("stop chan revieced")
-			return
-		default:
-		}
 		fh, err := ReadFrameHeader(r)
 
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 
 		fb := make([]byte, fh.Length)
@@ -222,19 +219,26 @@ func read(w *bufio.Writer, r *bufio.Reader) {
 
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 
 		if str := string(fb); str == "PONG" {
-			time.Sleep(writeInterval * 15)
+			time.Sleep(writeInterval)
+			atomic.AddInt32(&countA, 1)
+
+			select {
+			case <-stopChan:
+				return
+			default:
+			}
 
 			if err = WriteData(w, []byte("PING")); err != nil {
-				panic(err)
+				fmt.Println(err)
+				return
 			}
 
 			w.Flush()
-
-			atomic.AddInt32(&countA, 1)
 		}
 	}
 }
