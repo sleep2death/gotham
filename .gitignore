@@ -13,3 +13,5 @@
 
 # go dep
 vendor
+
+coverage.txt
