@@ -18,7 +18,7 @@ git:
 install: true
 
 script:
- - go test -race -coverprofile=coverage.txt -covermode=atomic
+ - go test -race -coverprofile=coverage.txt -covermode=atomic -v
 
 after_success:
 - bash <(curl -s https://codecov.io/bash) -t bbc90a4f-3b7a-4c5a-bd7f-42708305547d
