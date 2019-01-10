@@ -56,7 +56,7 @@ func TestServeRead(t *testing.T) {
 		}
 	}
 
-	// serve two listners
+	// serve two listeners
 	go listen(ln1)
 	go listen(ln2)
 
@@ -161,7 +161,7 @@ func TestEcho(t *testing.T) {
 	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
 		if str := string(fb); str == "PING" {
 			time.Sleep(writeInterval)
-			// passive write back, when recieved from clients
+			// passive write back, when received from clients
 			WriteData(w, []byte("PONG"))
 			w.(*bufio.Writer).Flush()
 			atomic.AddInt32(&countB, 1)
@@ -175,7 +175,7 @@ func TestEcho(t *testing.T) {
 		}
 	}
 
-	// serve two listners
+	// serve two listeners
 	go listen(ln1)
 	go listen(ln2)
 

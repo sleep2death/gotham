@@ -46,12 +46,16 @@ func main() {
 		}
 	}
 
-	// serve two listners
+	// serve two listeners
 	go listen(ln)
 
 	conn, err := net.DialTimeout("tcp", addr, time.Minute*5)
-	w := bufio.NewWriter(conn)
 
+	if err != nil {
+		panic(err)
+	}
+
+	w := bufio.NewWriter(conn)
 	book := &pb.AddressBook{}
 
 	var people []*pb.Person
