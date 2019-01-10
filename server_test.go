@@ -68,7 +68,7 @@ func TestServeRead(t *testing.T) {
 	// shutdown all clients goroutines
 	_ = server.Shutdown()
 
-	// plus one when writer a msg, minus one when read,
+	// plus one when writing a msg, minus one when read,
 	// so if all the write/read(s) are functional, the count should be ZERO
 	assert.Equal(t, int32(0), atomic.LoadInt32(&countA))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&countB))
