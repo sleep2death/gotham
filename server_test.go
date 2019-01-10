@@ -161,6 +161,7 @@ func TestEcho(t *testing.T) {
 	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
 		if str := string(fb); str == "PING" {
 			time.Sleep(writeInterval)
+			// passive write back, when recieved from clients
 			WriteData(w, []byte("PONG"))
 			w.(*bufio.Writer).Flush()
 			atomic.AddInt32(&countB, 1)
@@ -227,6 +228,7 @@ func read(w *bufio.Writer, r *bufio.Reader) {
 			time.Sleep(writeInterval)
 			atomic.AddInt32(&countA, 1)
 
+			// stop ping back, when stop channel closed
 			select {
 			case <-stopChan:
 				return

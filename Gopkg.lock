@@ -10,10 +10,13 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:d54df1fb58660918d29dfd14de544579e3ae14325fba85bf82703f91e8025148"
+  digest = "1:4c0989ca0bcd10799064318923b9bc2db6b4d6338dd75f3f2d86c3511aaaf5cf"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
@@ -36,13 +39,23 @@
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
 
+[[projects]]
+  digest = "1:c08f5d8cc28ed4dccb098121d5f1f19f708bf04e3bbd4b772ce6461de6ef1ca2"
+  name = "github.com/teris-io/shortid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6c56cef5189ca1b3d5ef01dc07f4d611dfc0bb33"
+  version = "v1.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/golang/protobuf/proto",
+    "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/stretchr/testify/assert",
+    "github.com/teris-io/shortid",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
