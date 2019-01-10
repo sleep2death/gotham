@@ -273,7 +273,10 @@ func (srv *Server) Shutdown() error {
 		}
 		select {
 		case <-ticker.C:
-			srv.logf("waiting on %v connections", len(srv.activeConn))
+			srv.mu.Lock()
+			num := len(srv.activeConn)
+			srv.mu.Unlock()
+			srv.logf("waiting on %v connections", num)
 		}
 	}
 }

@@ -20,13 +20,14 @@ var (
 	countA, countB, totalWrites int32
 	dialCount                   = 50 // clients num
 	writeCount                  = 50 // write num with each client
-	stopChan                    = make(chan struct{})
 	dialInterval                = time.Millisecond * 1
 	writeInterval               = time.Millisecond * 1
 	testDuration                = time.Millisecond * 75
 )
 
 func TestServeRead(t *testing.T) {
+	stopChan := make(chan struct{})
+
 	ln1, err := net.Listen("tcp", addr1)
 	ln2, err := net.Listen("tcp", addr2)
 
@@ -49,21 +50,14 @@ func TestServeRead(t *testing.T) {
 		}
 	}
 
-	listen := func(ln net.Listener) {
-		if err = server.Serve(ln); err != nil {
-			// it is going to throw an error, when the server finally closed
-			fmt.Println(ln.Addr(), err.Error())
-		}
-	}
-
 	// serve two listeners
-	go listen(ln1)
-	go listen(ln2)
+	go server.Serve(ln1)
+	go server.Serve(ln2)
 
 	// interval := time.Millisecond // write and connect interval
 	// ticker := time.NewTicker(interval)
 
-	go dial(LoopWrite)
+	go dial(LoopWrite, stopChan)
 
 	// not enough time to complete the data writing,
 	// so we can test the shutdown func is going to work properly
@@ -87,7 +81,7 @@ const (
 	Echo
 )
 
-func dial(t dialType) {
+func dial(t dialType, stopChan chan struct{}) {
 	for i := 0; i < dialCount; i++ {
 
 		var conn net.Conn
@@ -106,11 +100,11 @@ func dial(t dialType) {
 		w := bufio.NewWriter(conn)
 		switch t {
 		case LoopWrite:
-			go writeLoop(w)
+			go writeLoop(w, stopChan)
 		case Echo:
 			_ = WriteData(w, []byte("PING"))
 			_ = w.Flush()
-			go read(w, bufio.NewReader(conn))
+			go read(w, bufio.NewReader(conn), stopChan)
 		default:
 		}
 
@@ -118,7 +112,7 @@ func dial(t dialType) {
 	}
 }
 
-func writeLoop(w *bufio.Writer) {
+func writeLoop(w *bufio.Writer, stopChan chan struct{}) {
 	for j := 0; j < writeCount; j++ {
 		select {
 		case <-stopChan:
@@ -144,7 +138,8 @@ func writeLoop(w *bufio.Writer) {
 }
 
 func TestEcho(t *testing.T) {
-	stopChan = make(chan struct{})
+	stopChan := make(chan struct{})
+
 	atomic.StoreInt32(&countA, 0)
 	atomic.StoreInt32(&countB, 0)
 
@@ -168,18 +163,11 @@ func TestEcho(t *testing.T) {
 		}
 	}
 
-	listen := func(ln net.Listener) {
-		if err = server.Serve(ln); err != nil {
-			// it is going to throw an error, when the server finally closed
-			fmt.Println(ln.Addr(), err.Error())
-		}
-	}
-
 	// serve two listeners
-	go listen(ln1)
-	go listen(ln2)
+	go server.Serve(ln1)
+	go server.Serve(ln2)
 
-	go dial(Echo)
+	go dial(Echo, stopChan)
 
 	time.Sleep(time.Second * 1)
 
@@ -204,7 +192,7 @@ func listen(server *Server, ln net.Listener) {
 	}
 }
 
-func read(w *bufio.Writer, r *bufio.Reader) {
+func read(w *bufio.Writer, r *bufio.Reader, stopChan chan struct{}) {
 	for {
 		fh, err := ReadFrameHeader(r)
 
