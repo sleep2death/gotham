@@ -116,6 +116,7 @@ func writeLoop(w *bufio.Writer, stopChan chan struct{}) {
 	for j := 0; j < writeCount; j++ {
 		select {
 		case <-stopChan:
+			// fmt.Println("stop writing")
 			return
 		default:
 		}
@@ -219,6 +220,7 @@ func read(w *bufio.Writer, r *bufio.Reader, stopChan chan struct{}) {
 			// stop ping back, when stop channel closed
 			select {
 			case <-stopChan:
+				fmt.Println("stop writing")
 				return
 			default:
 			}

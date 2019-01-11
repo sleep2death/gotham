@@ -24,8 +24,7 @@ type Server struct {
 	ConnState func(net.Conn, ConnState)
 	ErrorLog  *log.Logger
 
-	disableKeepAlives int32 // accessed atomically.
-	inShutdown        int32 // accessed atomically (non-zero means we're in Shutdown)
+	inShutdown int32 // accessed atomically (non-zero means we're in Shutdown)
 
 	mu         sync.Mutex
 	listeners  map[*net.Listener]struct{}
@@ -313,8 +312,4 @@ func (srv *Server) idleTimeout() time.Duration {
 		return srv.IdleTimeout
 	}
 	return srv.ReadTimeout
-}
-
-func (srv *Server) doKeepAlives() bool {
-	return atomic.LoadInt32(&srv.disableKeepAlives) == 0 && !srv.shuttingDown()
 }

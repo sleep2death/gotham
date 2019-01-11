@@ -46,7 +46,6 @@ func main() {
 		}
 	}
 
-	// serve two listeners
 	go listen(ln)
 
 	conn, err := net.DialTimeout("tcp", addr, time.Minute*5)
