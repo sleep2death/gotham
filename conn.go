@@ -101,9 +101,8 @@ func (c *conn) finalFlush() {
 	}
 
 	if c.bufw != nil {
-		if err := c.bufw.Flush(); err != nil {
-			panic(err)
-		}
+		// flush it, anyway
+		_ = c.bufw.Flush()
 		// Steal the bufio.Writer (~4KB worth of memory) and its associated
 		// writer for a future connection.
 		putBufioWriter(c.bufw)
