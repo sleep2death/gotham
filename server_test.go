@@ -220,7 +220,7 @@ func read(w *bufio.Writer, r *bufio.Reader, stopChan chan struct{}) {
 			// stop ping back, when stop channel closed
 			select {
 			case <-stopChan:
-				fmt.Println("stop writing")
+				// fmt.Println("stop writing")
 				return
 			default:
 			}
