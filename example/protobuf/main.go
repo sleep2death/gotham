@@ -28,7 +28,7 @@ func main() {
 	server.ReadTimeout = time.Minute
 
 	listen := func(ln net.Listener) {
-		if err := server.Serve(ln); err != nil {
+		if err = server.Serve(ln); err != nil {
 			// it is going to throw an error, when the server finally closed
 			fmt.Println(ln.Addr(), err.Error())
 		}
@@ -36,7 +36,7 @@ func main() {
 
 	server.ServeTCP = func(w io.Writer, fh gotham.FrameHeader, fb []byte) {
 		out := &pb.AddressBook{}
-		if err := proto.Unmarshal(fb, out); err != nil {
+		if err = proto.Unmarshal(fb, out); err != nil {
 			log.Fatalln("Failed to parse address book:", err)
 		}
 

@@ -308,8 +308,6 @@ func WriteData(w io.Writer, data []byte) (err error) {
 
 	if err == nil && n != len(wbuf) {
 		err = io.ErrShortWrite
-	} else if err != nil {
-		return
 	}
 
 	return err
