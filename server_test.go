@@ -15,13 +15,13 @@ import (
 )
 
 var (
-	addr1                       = ":4000"
-	addr2                       = ":4001"
+	addr1                       = ":9001"
+	addr2                       = ":9002"
 	countA, countB, totalWrites int32
 	dialCount                   = 50 // clients num
 	writeCount                  = 50 // write num with each client
-	dialInterval                = time.Millisecond * 1
-	writeInterval               = time.Millisecond * 1
+	dialInterval                = time.Millisecond * 5
+	writeInterval               = time.Millisecond * 5
 	testDuration                = time.Millisecond * 75
 )
 
@@ -36,7 +36,7 @@ func TestServeRead(t *testing.T) {
 	}
 
 	server := &Server{}
-	server.ReadTimeout = time.Minute
+	server.ReadTimeout = time.Hour
 
 	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
 		str := string(fb)
@@ -68,7 +68,7 @@ func TestServeRead(t *testing.T) {
 	// shutdown all clients goroutines
 	_ = server.Shutdown()
 
-	// plus one when writing a msg, minus one when read,
+	// plus one when writing a msg, minus one when reading,
 	// so if all the write/read(s) are functional, the count should be ZERO
 	assert.Equal(t, int32(0), atomic.LoadInt32(&countA))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&countB))
@@ -88,9 +88,9 @@ func dial(t dialType, stopChan chan struct{}) {
 		var err error
 
 		if l := rand.Intn(2); l == 1 {
-			conn, err = net.DialTimeout("tcp", addr1, time.Minute*5)
+			conn, err = net.DialTimeout("tcp", addr1, time.Minute)
 		} else {
-			conn, err = net.DialTimeout("tcp", addr2, time.Minute*5)
+			conn, err = net.DialTimeout("tcp", addr2, time.Minute)
 		}
 		// if connection refused, then stop
 		if err != nil {
