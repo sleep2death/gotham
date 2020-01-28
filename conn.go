@@ -152,36 +152,37 @@ func (c *conn) serve() {
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
 			panic(err)
+		} else if err == io.EOF {
+			continue
 		}
 
-		if fh.Length > 0 {
-			// set underline conn to active mode
-			c.setState(c.rwc, StateActive)
+		// set underline conn to active mode
+		c.setState(c.rwc, StateActive)
 
-			// read frame body
-			fb := make([]byte, fh.Length)
-			_, err = io.ReadFull(c.bufr, fb)
+		// read frame body
+		// TODO: byte array pooling
+		fb := make([]byte, fh.Length)
+		_, err = io.ReadFull(c.bufr, fb)
 
-			// it's ok to continue, when reached the EOF
-			if err != nil && err != io.EOF {
-				panic(err)
-			}
-
-			// read frame body
-			if len(fb) > 0 {
-				var msg any.Any
-				err = proto.Unmarshal(fb, &msg)
-
-				if err != nil {
-					panic(err)
-				}
-
-				// send it to router
-				c.server.ServeMessage(c.bufw, msg)
-			}
-			// log.Println(c.bufr.Buffered())
+		// it's ok to continue, when reached the EOF
+		if err != nil && err != io.EOF {
+			panic(err)
+		} else if err == io.EOF {
+			continue
 		}
 
+		// read frame body
+		var msg any.Any
+		err = proto.Unmarshal(fb, &msg)
+
+		if err != nil {
+			panic(err)
+		}
+
+		// handle the message to router
+		c.server.ServeMessage(c.bufw, msg)
+
+		// handle idle connection
 		if d := c.server.idleTimeout(); d != 0 {
 			err = c.rwc.SetReadDeadline(time.Now().Add(d))
 		} else {
@@ -229,7 +230,7 @@ func (t FrameType) String() string {
 
 const (
 	minMaxFrameSize = 1 << 14
-	maxFrameSize    = 1<<24 - 1
+	maxFrameSize    = 4096 - 1
 )
 
 // Flags is a bitmask of HTTP/2 flags.
@@ -359,6 +360,9 @@ var fhBytes = sync.Pool{
 var (
 	bufioReaderPool sync.Pool
 	bufioWriterPool sync.Pool
+
+	// frame body bytearray pooling
+	// bytePool *BytePool = NewBytePool(516, maxFrameSize)
 )
 
 func newBufioReader(r io.Reader) *bufio.Reader {
@@ -391,4 +395,7 @@ func newBufioWriter(w io.Writer) *bufio.Writer {
 func putBufioWriter(bw *bufio.Writer) {
 	bw.Reset(nil)
 	bufioWriterPool.Put(bw)
+}
+
+func newBytes() {
 }

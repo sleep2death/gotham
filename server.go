@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
 	"github.com/golang/protobuf/ptypes/any"
 )
 
@@ -90,9 +91,9 @@ func (srv *Server) Serve(l net.Listener) error {
 // ServeMessage from connections
 func (srv *Server) ServeMessage(w *bufio.Writer, msg any.Any) {
 	url := msg.GetTypeUrl()
-	// data := any.GetValue()
+	data := msg.GetValue()
 
-	log.Printf("[req: %s]", url)
+	log.Printf("[req: %s | len: %d]", url, len(data))
 }
 
 // onceCloseListener wraps a net.Listener, protecting it from
