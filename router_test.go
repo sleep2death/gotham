@@ -10,7 +10,9 @@ import (
 
 func TestRouterServe(t *testing.T) {
 	r := New()
-	r.Handle("/gotham/PingMsg", func(ctx *Context) {
+	group := r.Group("/gotham")
+
+	group.Handle("/PingMsg", func(ctx *Context) {
 		log.Printf("[req: %s]", ctx.FullPath())
 	})
 
