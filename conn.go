@@ -396,6 +396,3 @@ func putBufioWriter(bw *bufio.Writer) {
 	bw.Reset(nil)
 	bufioWriterPool.Put(bw)
 }
-
-func newBytes() {
-}

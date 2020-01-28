@@ -47,12 +47,48 @@ func TestServe(t *testing.T) {
 
 	payload, _ := proto.Marshal(any)
 
-    // write two payloads at once
+	// write two payloads at once
 	w := bufio.NewWriter(conn)
-	_ = WriteData(w, payload)
-	_ = WriteData(w, payload)
+	WriteData(w, payload)
+	WriteData(w, payload)
+	w.Flush()
 
-	_ = w.Flush()
+	// make the payload manually
+	var flags Flags
+	flags |= FlagFrameAck
+	length := len(payload)
 
+	header := [frameHeaderLen]byte{
+		byte(length >> 16),
+		byte(length >> 8),
+		byte(length),
+		byte(FrameData),
+		byte(flags),
+	}
+
+	// test incomplete header
+	// write the broken header first
+	w.Write(header[:3])
+	w.Flush()
+	// then wait a little while, write the left...
+	time.Sleep(waitTime)
+	wbuf := append(header[3:], payload...)
+	w.Write(wbuf)
+	w.Flush()
+
+	time.Sleep(waitTime)
+
+	// test incomplete body
+	// write the broken body first
+	wbuf = append(header[:frameHeaderLen], payload[:3]...)
+	w.Write(wbuf)
+	w.Flush()
+	// then wait a little while, write the left...
+	time.Sleep(waitTime)
+	wbuf = append(payload[3:])
+	w.Write(wbuf)
+	w.Flush()
+
+	// wait for server writing back
 	time.Sleep(waitTime)
 }
