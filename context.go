@@ -4,26 +4,9 @@ import (
 	"time"
 )
 
-// Request ...
-type Request struct {
-	Path   string
-	Params Params
-	ID     string
-}
-
-// Response ...
-type Response struct {
-	Result Params
-	Error  error
-	ID     string
-}
-
 // Context is the most important part of gamerouter. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
-	Request  *Request
-	Response *Response
-
 	engine *Router
 
 	handlers HandlersChain
@@ -42,8 +25,6 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Request = nil
-	c.Response = nil
 	c.handlers = nil
 
 	c.index = -1
@@ -241,13 +222,4 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 		smss, _ = val.(map[string][]string)
 	}
 	return
-}
-
-/************************************/
-/************ INPUT DATA ************/
-/************************************/
-
-// Param returns the value of the param.
-func (c *Context) Param(key string) interface{} {
-	return c.Request.Params.ByName(key)
 }

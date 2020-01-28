@@ -22,5 +22,5 @@ func TestRouterServe(t *testing.T) {
 		Value:   b,
 	}
 
-	r.ServeProto(nil, msg)
+	r.Serve(nil, msg)
 }

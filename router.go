@@ -48,7 +48,7 @@ type Router struct {
 	allNoRoute HandlersChain
 	noRoute    HandlersChain
 	pool       sync.Pool
-	trees      methodTrees
+	root       *node
 }
 
 var _ IRouter = &Router{}
@@ -63,7 +63,7 @@ func New() *Router {
 		},
 		RemoveExtraSlash:   true,
 		MaxMultipartMemory: defaultMultipartMemory,
-		trees:              make(methodTrees, 0, 9),
+		root:               new(node),
 	}
 	engine.RouterGroup.engine = engine
 	engine.pool.New = func() interface{} {
@@ -100,22 +100,7 @@ func (engine *Router) addRoute(path string, handlers HandlersChain) {
 	assert1(len(handlers) > 0, "there must be at least one handler")
 
 	// debugPrintRoute(method, path, handlers)
-	root := engine.trees.get("any")
-	if root == nil {
-		root = new(node)
-		root.fullPath = "/"
-		engine.trees = append(engine.trees, methodTree{method: "any", root: root})
-	}
-	root.addRoute(path, handlers)
-}
-
-// Routes returns a slice of registered routes, including some useful information, such as:
-// the http method, path and the handler name.
-func (engine *Router) Routes() (routes RoutesInfo) {
-	for _, tree := range engine.trees {
-		routes = iterate("", tree.method, routes, tree.root)
-	}
-	return routes
+	engine.root.addRoute(path, handlers)
 }
 
 func iterate(path, method string, routes RoutesInfo, root *node) RoutesInfo {
@@ -135,71 +120,23 @@ func iterate(path, method string, routes RoutesInfo, root *node) RoutesInfo {
 }
 
 // Serve conforms to the Handler interface.
-func (engine *Router) ServeProto(w *bufio.Writer, msg *any.Any) {
+func (r *Router) Serve(w *bufio.Writer, msg *any.Any) {
 	// get context from pool
-	c := engine.pool.Get().(*Context)
+	c := r.pool.Get().(*Context)
 	c.reset()
 	rPath := msg.GetTypeUrl()
 
-	// root of the tree
-	root := engine.trees[0].root
-
 	// Find route in the tree
-	value := root.getValue(rPath, nil, false)
+	value := r.root.getValue(rPath, nil, false)
 	if value.handlers != nil {
 		c.handlers = value.handlers
 		c.fullPath = value.fullPath
 	} else {
-		c.handlers = engine.allNoRoute
+		c.handlers = r.allNoRoute
 	}
 
 	c.Next()
 
 	// put context back to the pool
-	engine.pool.Put(c)
-}
-
-// Serve conforms to the Handler interface.
-func (engine *Router) Serve(rep *Response, req *Request) {
-	c := engine.pool.Get().(*Context)
-	c.reset()
-
-	c.Response = rep
-	c.Request = req
-	engine.handleRequest(c)
-
-	engine.pool.Put(c)
-}
-
-func (engine *Router) handleRequest(c *Context) {
-	method := "any"
-	rPath := c.Request.Path
-	unescape := false
-
-	if engine.RemoveExtraSlash {
-		rPath = cleanPath(rPath)
-	}
-
-	// Find root of the tree for the given HTTP method
-	t := engine.trees
-	for i, tl := 0, len(t); i < tl; i++ {
-		if t[i].method != method {
-			continue
-		}
-		root := t[i].root
-		// Find route in tree
-		value := root.getValue(rPath, c.Request.Params, unescape)
-		if value.handlers != nil {
-			c.handlers = value.handlers
-			c.Request.Params = value.params
-			c.fullPath = value.fullPath
-			c.Next()
-			// c.writermem.WriteHeaderNow()
-			return
-		}
-		break
-	}
-
-	c.handlers = engine.allNoRoute
-	c.Next()
+	r.pool.Put(c)
 }
