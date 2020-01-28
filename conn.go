@@ -10,6 +10,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 // A ConnState represents the state of a client connection to a server.
@@ -143,6 +146,7 @@ func (c *conn) serve() {
 
 	// conn loop start
 	for {
+		// read frame header
 		fh, err := ReadFrameHeader(c.bufr)
 
 		// it's ok to continue, when reached the EOF
@@ -150,27 +154,32 @@ func (c *conn) serve() {
 			panic(err)
 		}
 
-		// set underline conn to active mode
-		c.setState(c.rwc, StateActive)
+		if fh.Length > 0 {
+			// set underline conn to active mode
+			c.setState(c.rwc, StateActive)
 
-		// if fh.Length == 0 {
-		// 	// not enough data for future reading
-		// 	continue
-		// }
+			// read frame body
+			fb := make([]byte, fh.Length)
+			_, err = io.ReadFull(c.bufr, fb)
 
-		fb := make([]byte, fh.Length)
+			// it's ok to continue, when reached the EOF
+			if err != nil && err != io.EOF {
+				panic(err)
+			}
 
-		_, err = io.ReadFull(c.bufr, fb)
+			// read frame body
+			if len(fb) > 0 {
+				var msg any.Any
+				err = proto.Unmarshal(fb, &msg)
 
-		// it's ok to continue, when reached the EOF
-		if err != nil && err != io.EOF {
-			panic(err)
-		}
+				if err != nil {
+					panic(err)
+				}
 
-		// TODO: message handler here
-		// c.server.logf("msg<%s", fb)
-		if c.server.ServeTCP != nil {
-			c.server.ServeTCP(c.bufw, fh, fb)
+				// send it to router
+				c.server.ServeMessage(c.bufw, msg)
+			}
+			// log.Println(c.bufr.Buffered())
 		}
 
 		if d := c.server.idleTimeout(); d != 0 {

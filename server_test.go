@@ -2,235 +2,67 @@ package gotham
 
 import (
 	"bufio"
-	"fmt"
-	"io"
-	"math/rand"
 	"net"
-	"strings"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 var (
-	addr1                       = ":9001"
-	addr2                       = ":9002"
-	countA, countB, totalWrites int32
-	dialCount                   = 50 // clients num
-	writeCount                  = 50 // write num with each client
-	dialInterval                = time.Millisecond * 5
-	writeInterval               = time.Millisecond * 5
-	testDuration                = time.Millisecond * 75
+	addr                       = ":9001"
+	dialCount                   = 5 // clients num
+
+	waitTime = time.Millisecond * 5
 )
 
-func TestServeRead(t *testing.T) {
-	stopChan := make(chan struct{})
-
-	ln1, err := net.Listen("tcp", addr1)
-	ln2, err := net.Listen("tcp", addr2)
-
+func TestServe(t *testing.T) {
+	ln, err := net.Listen("tcp", ":9001")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
-	server := &Server{}
-	server.ReadTimeout = time.Hour
+	server := &Server{ReadTimeout: time.Minute}
 
-	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
-		str := string(fb)
+	// starting the server
+	go server.Serve(ln)
+	time.Sleep(time.Millisecond)
 
-		if strings.Index(str, "Hello") >= 0 {
-			atomic.AddInt32(&countA, -1)
-		} else if strings.Index(str, "Goodbye") >= 0 {
-			atomic.AddInt32(&countB, -1)
-		} else {
-			t.Log("invalid data")
-		}
-	}
+	var wg sync.WaitGroup
 
-	// serve two listeners
-	go server.Serve(ln1)
-	go server.Serve(ln2)
-
-	// interval := time.Millisecond // write and connect interval
-	// ticker := time.NewTicker(interval)
-
-	go dial(LoopWrite, stopChan)
-
-	// not enough time to complete the data writing,
-	// so we can test the shutdown func is going to work properly
-	time.Sleep(testDuration)
-	// stop all writing...
-	close(stopChan)
-	t.Logf("total message writes: %d/%d", atomic.LoadInt32(&totalWrites), dialCount*writeCount)
-	// shutdown all clients goroutines
-	_ = server.Shutdown()
-
-	// plus one when writing a msg, minus one when reading,
-	// so if all the write/read(s) are functional, the count should be ZERO
-	assert.Equal(t, int32(0), atomic.LoadInt32(&countA))
-	assert.Equal(t, int32(0), atomic.LoadInt32(&countB))
-}
-
-type dialType uint
-
-const (
-	LoopWrite dialType = iota
-	Echo
-)
-
-func dial(t dialType, stopChan chan struct{}) {
 	for i := 0; i < dialCount; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			conn, err := net.Dial("tcp", ":9001")
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		var conn net.Conn
-		var err error
+			defer conn.Close()
+			defer wg.Done()
 
-		if l := rand.Intn(2); l == 1 {
-			conn, err = net.DialTimeout("tcp", addr1, time.Minute)
-		} else {
-			conn, err = net.DialTimeout("tcp", addr2, time.Minute)
-		}
-		// if connection refused, then stop
-		if err != nil {
-			return
-		}
+			ping := &PingMsg{
+				Message: "Hello",
+			}
+			content, _ := proto.Marshal(ping)
 
-		w := bufio.NewWriter(conn)
-		switch t {
-		case LoopWrite:
-			go writeLoop(w, stopChan)
-		case Echo:
-			_ = WriteData(w, []byte("PING"))
+			any := &any.Any{
+				TypeUrl: proto.MessageName(ping),
+				Value:   content,
+			}
+
+			payload, _ := proto.Marshal(any)
+
+			w := bufio.NewWriter(conn)
+			_ = WriteData(w, payload)
+			_ = WriteData(w, payload)
 			_ = w.Flush()
-			go read(w, bufio.NewReader(conn), stopChan)
-		default:
-		}
 
-		time.Sleep(dialInterval)
+			time.Sleep(waitTime)
+		}(i)
 	}
-}
-
-func writeLoop(w *bufio.Writer, stopChan chan struct{}) {
-	for j := 0; j < writeCount; j++ {
-		select {
-		case <-stopChan:
-			// fmt.Println("stop writing")
-			return
-		default:
-		}
-
-		var data []byte
-		if r := rand.Intn(2); r == 1 {
-			data = []byte("Hello")
-			atomic.AddInt32(&countA, 1)
-		} else {
-			data = []byte("Goodbye")
-			atomic.AddInt32(&countB, 1)
-		}
-
-		_ = WriteData(w, data)
-		_ = w.Flush()
-
-		atomic.AddInt32(&totalWrites, 1)
-		time.Sleep(writeInterval)
-	}
-}
-
-func TestEcho(t *testing.T) {
-	stopChan := make(chan struct{})
-
-	atomic.StoreInt32(&countA, 0)
-	atomic.StoreInt32(&countB, 0)
-
-	ln1, err := net.Listen("tcp", addr1)
-	ln2, err := net.Listen("tcp", addr2)
-
-	if err != nil {
-		panic(err)
-	}
-
-	server := &Server{}
-	server.ReadTimeout = time.Minute
-
-	server.ServeTCP = func(w io.Writer, fh FrameHeader, fb []byte) {
-		if str := string(fb); str == "PING" {
-			time.Sleep(writeInterval)
-			// passive write back, when received from clients
-			WriteData(w, []byte("PONG"))
-			w.(*bufio.Writer).Flush()
-			atomic.AddInt32(&countB, 1)
-		}
-	}
-
-	// serve two listeners
-	go server.Serve(ln1)
-	go server.Serve(ln2)
-
-	go dial(Echo, stopChan)
-
-	time.Sleep(time.Second * 1)
-
-	close(stopChan)
-	server.Shutdown()
-
-	assert.Equal(t, atomic.LoadInt32(&countA), atomic.LoadInt32(&countB))
-	t.Logf("PING count:%d, PONG count:%d", atomic.LoadInt32(&countA), atomic.LoadInt32(&countB))
-}
-
-func createServer() *Server {
-	server := &Server{}
-	server.ReadTimeout = time.Minute
-
-	return server
-}
-
-func listen(server *Server, ln net.Listener) {
-	if err := server.Serve(ln); err != nil {
-		// it is going to throw an error, when the server finally closed
-		fmt.Println(ln.Addr(), err.Error())
-	}
-}
-
-func read(w *bufio.Writer, r *bufio.Reader, stopChan chan struct{}) {
-	for {
-		fh, err := ReadFrameHeader(r)
-
-		// it's ok to continue, when reached the EOF
-		if err != nil && err != io.EOF {
-			fmt.Println(err)
-			return
-		}
-
-		fb := make([]byte, fh.Length)
-
-		_, err = io.ReadFull(r, fb)
-
-		// it's ok to continue, when reached the EOF
-		if err != nil && err != io.EOF {
-			fmt.Println(err)
-			return
-		}
-
-		if str := string(fb); str == "PONG" {
-			time.Sleep(writeInterval)
-			atomic.AddInt32(&countA, 1)
-
-			// stop ping back, when stop channel closed
-			select {
-			case <-stopChan:
-				// fmt.Println("stop writing")
-				return
-			default:
-			}
-
-			if err = WriteData(w, []byte("PING")); err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			w.Flush()
-		}
-	}
+	wg.Wait()
+	time.Sleep(waitTime)
 }

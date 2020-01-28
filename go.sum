@@ -1,6 +1,5 @@
-github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
-github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
-github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c h1:MhdkG8ygXqjOGDouO0R1lIaXd4ZDMLhbO+rpzLmwe7Q=
 github.com/teris-io/shortid v0.0.0-20160104014424-6c56cef5189c/go.mod h1:M8agBzgqHIhgj7wEn9/0hJUZcrvt9VY+Ln+S1I5Mha0=
+github.com/ventu-io/go-shortid v0.0.0-20171029131806-771a37caa5cf h1:cgAKVljim9RJRcJNGjnBUajXj1FupBSdWwW4JaQG7vk=
+github.com/ventu-io/go-shortid v0.0.0-20171029131806-771a37caa5cf/go.mod h1:6rZqAOk/eYX5FJyjQJ6Z3RBSN389IXX2ijwW4FcggaM=

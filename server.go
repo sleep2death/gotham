@@ -1,6 +1,7 @@
 package gotham
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 // ErrServerClosed is returned by the Server's Serve,
@@ -83,6 +85,14 @@ func (srv *Server) Serve(l net.Listener) error {
 		// do not need context, 'cause the connect is going to connect forever
 		go c.serve()
 	}
+}
+
+// ServeMessage from connections
+func (srv *Server) ServeMessage(w *bufio.Writer, msg any.Any) {
+	url := msg.GetTypeUrl()
+	// data := any.GetValue()
+
+	log.Printf("[req: %s]", url)
 }
 
 // onceCloseListener wraps a net.Listener, protecting it from
