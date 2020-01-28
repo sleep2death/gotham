@@ -1,0 +1,12 @@
+syntax ="proto3";
+package gotham;
+
+import "google/protobuf/any.proto";
+
+message AnyMsg {
+    google.protobuf.Any any = 1;
+}
+
+message PingMsg {
+    string message = 1;
+}
