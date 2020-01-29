@@ -3,22 +3,22 @@ language: go
 sudo: false
 
 go:
- - 1.11.x
+    - 1.13.x
 
-# Force-enable Go modules. This will be unnecessary when Go 1.12 lands.
+      # Force-enable Go modules. This will be unnecessary when Go 1.12 lands.
 env:
-  - GO111MODULE=on
- 
-# Only clone the most recent commit.
-git:
-  depth: 1
+    - GO111MODULE=on
 
-# Skip the install step. Don't `go get` dependencies. Only build with the code
-# in vendor/
+      # Only clone the most recent commit.
+git:
+    depth: 1
+
+    # Skip the install step. Don't `go get` dependencies. Only build with the code
+    # in vendor/
 install: true
 
 script:
- - go test -race -coverprofile=coverage.txt -covermode=atomic -v
+    - go test -race -coverprofile=coverage.txt -covermode=atomic -v
 
 after_success:
-- bash <(curl -s https://codecov.io/bash) -t bbc90a4f-3b7a-4c5a-bd7f-42708305547d
+    - bash <(curl -s https://codecov.io/bash) -t bbc90a4f-3b7a-4c5a-bd7f-42708305547d
