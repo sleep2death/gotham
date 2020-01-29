@@ -16,6 +16,10 @@ import (
 // ErrServerClosed is returned by the Server's Serve,
 var ErrServerClosed = errors.New("tcp: Server closed")
 
+type Handler interface {
+	ServeProto(*bufio.Writer, *any.Any)
+}
+
 // Server instance
 type Server struct {
 	Addr string
@@ -89,7 +93,7 @@ func (srv *Server) Serve(l net.Listener) error {
 }
 
 // ServeMessage from connections
-func (srv *Server) ServeMessage(w *bufio.Writer, msg any.Any) {
+func (srv *Server) ServeMessage(c *conn, msg any.Any) {
 	url := msg.GetTypeUrl()
 	data := msg.GetValue()
 

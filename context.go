@@ -1,6 +1,7 @@
 package gotham
 
 import (
+	"bufio"
 	"time"
 )
 
@@ -18,6 +19,8 @@ type Context struct {
 
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
 	Errors []error
+
+	Writer *bufio.Writer
 }
 
 /************************************/

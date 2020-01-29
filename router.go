@@ -53,9 +53,9 @@ type Router struct {
 
 var _ IRouter = &Router{}
 
-// New returns a new blank Engine instance without any middleware attached.
+// New returns a new blank Router instance without any middleware attached.
 func New() *Router {
-	engine := &Router{
+	router := &Router{
 		RouterGroup: RouterGroup{
 			Handlers: nil,
 			basePath: "/",
@@ -65,45 +65,53 @@ func New() *Router {
 		MaxMultipartMemory: defaultMultipartMemory,
 		root:               new(node),
 	}
-	engine.RouterGroup.engine = engine
-	engine.pool.New = func() interface{} {
-		return engine.allocateContext()
+	router.RouterGroup.engine = router
+	router.pool.New = func() interface{} {
+		return router.allocateContext()
 	}
-	return engine
+	return router
 }
 
-func (engine *Router) allocateContext() *Context {
-	return &Context{engine: engine}
+func (router *Router) allocateContext() *Context {
+	return &Context{engine: router}
 }
 
 // NoRoute adds handlers for NoRoute. It return a 404 code by default.
-func (engine *Router) NoRoute(handlers ...HandlerFunc) {
-	engine.noRoute = handlers
-	engine.rebuild404Handlers()
+func (router *Router) NoRoute(handlers ...HandlerFunc) {
+	router.noRoute = handlers
+	router.rebuild404Handlers()
 }
 
 // Use attaches a global middleware to the router. ie. the middleware attached though Use() will be
 // included in the handlers chain for every single request. Even 404, 405, static files...
 // For example, this is the right place for a logger or error management middleware.
-func (engine *Router) Use(middleware ...HandlerFunc) IRoutes {
-	engine.RouterGroup.Use(middleware...)
-	engine.rebuild404Handlers()
-	return engine
+func (router *Router) Use(middleware ...HandlerFunc) IRoutes {
+	router.RouterGroup.Use(middleware...)
+	router.rebuild404Handlers()
+	return router
 }
 
-func (engine *Router) rebuild404Handlers() {
-	engine.allNoRoute = engine.combineHandlers(engine.noRoute)
+func (router *Router) rebuild404Handlers() {
+	router.allNoRoute = router.combineHandlers(router.noRoute)
 }
 
-func (engine *Router) addRoute(path string, handlers HandlersChain) {
+func (router *Router) addRoute(path string, handlers HandlersChain) {
 	assert1(path[0] == '/', "path must begin with '/'")
 	assert1(len(handlers) > 0, "there must be at least one handler")
 
 	// debugPrintRoute(method, path, handlers)
-	engine.root.addRoute(path, handlers)
+	router.root.addRoute(path, handlers)
 }
 
-func iterate(path, method string, routes RoutesInfo, root *node) RoutesInfo {
+// Routes returns a slice of registered routes, including some useful information, such as:
+// the http method, path and the handler name.
+func (router *Router) Routes() (routes RoutesInfo) {
+	tree := router.root
+	routes = iterate("", routes, tree)
+	return routes
+}
+
+func iterate(path string, routes RoutesInfo, root *node) RoutesInfo {
 	path += root.path
 	if len(root.handlers) > 0 {
 		handlerFunc := root.handlers.Last()
@@ -114,7 +122,7 @@ func iterate(path, method string, routes RoutesInfo, root *node) RoutesInfo {
 		})
 	}
 	for _, child := range root.children {
-		routes = iterate(path, method, routes, child)
+		routes = iterate(path, routes, child)
 	}
 	return routes
 }
@@ -124,6 +132,7 @@ func (r *Router) Serve(w *bufio.Writer, msg *any.Any) {
 	// get context from pool
 	c := r.pool.Get().(*Context)
 	c.reset()
+	c.Writer = w
 	rPath := msg.GetTypeUrl()
 
 	// Find route in the tree
@@ -134,7 +143,6 @@ func (r *Router) Serve(w *bufio.Writer, msg *any.Any) {
 	} else {
 		c.handlers = r.allNoRoute
 	}
-
 	c.Next()
 
 	// put context back to the pool

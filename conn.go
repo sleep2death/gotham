@@ -151,6 +151,7 @@ func (c *conn) serve() {
 
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
+			// TODO: log error instead?
 			panic(err)
 		} else if err == io.EOF {
 			continue
@@ -166,6 +167,7 @@ func (c *conn) serve() {
 
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
+			// TODO: log error instead?
 			panic(err)
 		} else if err == io.EOF {
 			continue
@@ -180,21 +182,18 @@ func (c *conn) serve() {
 		}
 
 		// handle the message to router
-		c.server.ServeMessage(c.bufw, msg)
+		c.server.ServeMessage(c, msg)
 
-		// handle idle connection
+		// set rwc to idle state again
+		c.setState(c.rwc, StateIdle)
+		// handle connection idle
 		if d := c.server.idleTimeout(); d != 0 {
 			err = c.rwc.SetReadDeadline(time.Now().Add(d))
-		} else {
-			err = c.rwc.SetReadDeadline(time.Time{})
+			if _, err := c.bufr.Peek(4); err != nil {
+				return
+			}
 		}
-
-		// set underline conn back to idle mode
-		c.setState(c.rwc, StateIdle)
-
-		if err != nil {
-			panic(err)
-		}
+		c.rwc.SetReadDeadline(time.Time{})
 	}
 }
 
