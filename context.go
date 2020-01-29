@@ -8,7 +8,7 @@ import (
 // Context is the most important part of gamerouter. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
-	engine *Router
+	router *Router
 
 	handlers HandlersChain
 	index    int8
@@ -20,7 +20,8 @@ type Context struct {
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
 	Errors []error
 
-	Writer *bufio.Writer
+	Writer  *bufio.Writer
+	Request *Request
 }
 
 /************************************/
@@ -29,7 +30,6 @@ type Context struct {
 
 func (c *Context) reset() {
 	c.handlers = nil
-
 	c.index = -1
 	c.fullPath = ""
 	c.Keys = nil

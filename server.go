@@ -20,19 +20,34 @@ import (
 var ErrServerClosed = errors.New("tcp: Server closed")
 
 type Handler interface {
-	ServeProto(*bufio.Writer, *any.Any)
+	ServeProto(*bufio.Writer, *Request)
 }
 
 // Server instance
 type Server struct {
+	// Addr optionally specifies the TCP address for the server to listen on,
 	Addr string
 
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	Handler Handler // handler to invoke
 
+	// ReadTimeout is the maximum duration for reading the entire
+	// request, including the body.
+	ReadTimeout time.Duration
+	// WriteTimeout is the maximum duration before timing out
+	// writes of the response.
+	WriteTimeout time.Duration
+	// IdleTimeout is the maximum amount of time to wait for the
+	// next request.
+	IdleTimeout time.Duration
+
+	// ConnState specifies an optional callback function that is
+	// called when a client connection changes state.
 	ConnState func(net.Conn, ConnState)
-	ErrorLog  *log.Logger
+
+	// ErrorLog specifies an optional logger for errors accepting
+	// connections, unexpected behavior from handlers, and
+	// underlying FileSystem errors.
+	ErrorLog *log.Logger
 
 	inShutdown int32 // accessed atomically (non-zero means we're in Shutdown)
 
@@ -41,9 +56,26 @@ type Server struct {
 	activeConn map[*conn]struct{}
 	doneChan   chan struct{}
 	onShutdown []func()
+}
 
-	// ServeTCP
-	ServeTCP func(writer io.Writer, fh FrameHeader, fb []byte)
+func ListenAndServe(addr string, handler Handler) error {
+	server := &Server{Addr: addr, Handler: handler}
+	return server.ListenAndServe()
+}
+
+func (srv *Server) ListenAndServe() error {
+	if srv.shuttingDown() {
+		return ErrServerClosed
+	}
+	addr := srv.Addr
+	if addr == "" {
+		addr = ":http"
+	}
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	return srv.Serve(ln)
 }
 
 // Serve the given listener
@@ -93,14 +125,6 @@ func (srv *Server) Serve(l net.Listener) error {
 		// do not need context, 'cause the connect is going to connect forever
 		go c.serve()
 	}
-}
-
-// ServeMessage from connections
-func (srv *Server) ServeMessage(c *conn, msg any.Any) {
-	url := msg.GetTypeUrl()
-	data := msg.GetValue()
-
-	log.Printf("[req: %s | len: %d]", url, len(data))
 }
 
 // onceCloseListener wraps a net.Listener, protecting it from
@@ -349,6 +373,13 @@ const (
 	StateClosed
 )
 
+// Request wrap the connection and other userful information of the client's request
+type Request struct {
+	conn *conn
+	URL  string
+	data []byte
+}
+
 type conn struct {
 	// server is the server on which the connection arrived.
 	// Immutable; never nil.
@@ -498,8 +529,16 @@ func (c *conn) serve() {
 			panic(err)
 		}
 
+		req := &Request{
+			conn: c,
+			URL:  msg.GetTypeUrl(),
+			data: msg.GetValue(),
+		}
+
 		// handle the message to router
-		c.server.ServeMessage(c, msg)
+		if c.server.Handler != nil {
+			c.server.Handler.ServeProto(c.bufw, req)
+		}
 
 		// set rwc to idle state again
 		c.setState(c.rwc, StateIdle)

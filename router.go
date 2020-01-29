@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"math"
 	"sync"
-
-	"github.com/golang/protobuf/ptypes/any"
 )
 
 const defaultMultipartMemory = 32 << 20 // 32 MB
@@ -73,7 +71,7 @@ func New() *Router {
 }
 
 func (router *Router) allocateContext() *Context {
-	return &Context{engine: router}
+	return &Context{router: router}
 }
 
 // NoRoute adds handlers for NoRoute. It return a 404 code by default.
@@ -127,20 +125,26 @@ func iterate(path string, routes RoutesInfo, root *node) RoutesInfo {
 	return routes
 }
 
+func (r *Router) Run(addr string) (err error) {
+	err = ListenAndServe(addr, r)
+	return
+}
+
 // Serve conforms to the Handler interface.
-func (r *Router) Serve(w *bufio.Writer, msg *any.Any) {
+func (r *Router) ServeProto(w *bufio.Writer, req *Request) {
 	// get context from pool
 	c := r.pool.Get().(*Context)
 	c.reset()
-	c.Writer = w
-	rPath := msg.GetTypeUrl()
 
+	c.Writer = w
+	c.Request = req
 	// Find route in the tree
-	value := r.root.getValue(rPath, nil, false)
+	value := r.root.getValue(c.Request.URL, nil, false)
 	if value.handlers != nil {
 		c.handlers = value.handlers
 		c.fullPath = value.fullPath
 	} else {
+		// no route was found
 		c.handlers = r.allNoRoute
 	}
 	c.Next()
