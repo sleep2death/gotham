@@ -10,15 +10,11 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 )
 
-var (
-	addr      = ":9001"
-	dialCount = 5 // clients num
-
-	waitTime = time.Millisecond * 5
-)
-
 func TestServe(t *testing.T) {
-	ln, err := net.Listen("tcp", ":9001")
+	// dialCount := 5 // clients num
+	waitTime := time.Millisecond * 5
+
+	ln, err := net.Listen("tcp", ":9002")
 	if err != nil {
 		t.Fatal(err)
 	}
