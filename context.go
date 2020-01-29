@@ -14,14 +14,14 @@ type Context struct {
 	index    int8
 	fullPath string
 
-	// Keys is a key/value pair exclusively for the context of each request.
-	Keys map[string]interface{}
+	// keys is a key/value pair exclusively for the context of each request.
+	keys map[string]interface{}
 
-	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
-	Errors []error
+	// errors is a list of errors attached to all the handlers/middlewares who used this context.
+	errors []error
 
-	Writer  *bufio.Writer
-	Request *Request
+	writer  *bufio.Writer
+	request *Request
 }
 
 /************************************/
@@ -32,8 +32,8 @@ func (c *Context) reset() {
 	c.handlers = nil
 	c.index = -1
 	c.fullPath = ""
-	c.Keys = nil
-	c.Errors = c.Errors[0:0]
+	c.keys = nil
+	c.errors = c.errors[0:0]
 }
 
 // HandlerName returns the main handler's name. For example if the handler is "handleGetUsers()",
@@ -64,6 +64,10 @@ func (c *Context) Handler() HandlerFunc {
 //     })
 func (c *Context) FullPath() string {
 	return c.fullPath
+}
+
+func (c *Context) Data() []byte {
+	return c.request.data
 }
 
 /************************************/
@@ -108,7 +112,7 @@ func (c *Context) Error(err error) {
 		panic("err is nil")
 	}
 
-	c.Errors = append(c.Errors, err)
+	c.errors = append(c.errors, err)
 }
 
 /************************************/
@@ -118,16 +122,16 @@ func (c *Context) Error(err error) {
 // Set is used to store a new key/value pair exclusively for this context.
 // It also lazy initializes  c.Keys if it was not used previously.
 func (c *Context) Set(key string, value interface{}) {
-	if c.Keys == nil {
-		c.Keys = make(map[string]interface{})
+	if c.keys == nil {
+		c.keys = make(map[string]interface{})
 	}
-	c.Keys[key] = value
+	c.keys[key] = value
 }
 
 // Get returns the value for the given key, ie: (value, true).
 // If the value does not exists it returns (nil, false)
 func (c *Context) Get(key string) (value interface{}, exists bool) {
-	value, exists = c.Keys[key]
+	value, exists = c.keys[key]
 	return
 }
 
@@ -226,3 +230,7 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 	}
 	return
 }
+
+/************************************/
+/************ INPUT DATA ************/
+/************************************/

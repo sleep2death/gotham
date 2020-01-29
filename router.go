@@ -136,10 +136,10 @@ func (r *Router) ServeProto(w *bufio.Writer, req *Request) {
 	c := r.pool.Get().(*Context)
 	c.reset()
 
-	c.Writer = w
-	c.Request = req
+	c.writer = w
+	c.request = req
 	// Find route in the tree
-	value := r.root.getValue(c.Request.URL, nil, false)
+	value := r.root.getValue(c.request.url, nil, false)
 	if value.handlers != nil {
 		c.handlers = value.handlers
 		c.fullPath = value.fullPath

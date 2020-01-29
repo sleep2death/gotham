@@ -20,6 +20,12 @@ func TestRouterServe(t *testing.T) {
 
 	group.Handle("/PingMsg", func(ctx *Context) {
 		log.Printf("[%s]", ctx.FullPath())
+		var msg PingMsg
+		err := proto.Unmarshal(ctx.request.data, &msg)
+		if err != nil {
+			panic(err)
+		}
+		log.Printf("ping message: %s", msg.GetMessage())
 	})
 
 	go r.Run(":9001")

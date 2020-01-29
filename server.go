@@ -376,7 +376,7 @@ const (
 // Request wrap the connection and other userful information of the client's request
 type Request struct {
 	conn *conn
-	URL  string
+	url  string
 	data []byte
 }
 
@@ -531,7 +531,7 @@ func (c *conn) serve() {
 
 		req := &Request{
 			conn: c,
-			URL:  msg.GetTypeUrl(),
+			url:  msg.GetTypeUrl(),
 			data: msg.GetValue(),
 		}
 
