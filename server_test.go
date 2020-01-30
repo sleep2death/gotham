@@ -25,7 +25,7 @@ func TestServe(t *testing.T) {
 	go server.Serve(ln)
 	time.Sleep(time.Millisecond)
 
-	conn, err := net.Dial("tcp", ":9001")
+	conn, err := net.Dial("tcp", ":9002")
 	if err != nil {
 		t.Fatal(err)
 	}
