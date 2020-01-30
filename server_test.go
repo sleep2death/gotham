@@ -31,7 +31,7 @@ func TestServe(t *testing.T) {
 	}
 	defer conn.Close()
 
-	ping := &PingMsg{
+	ping := &Ping{
 		Message: "Hello",
 	}
 	content, _ := proto.Marshal(ping)

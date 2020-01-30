@@ -1,6 +1,11 @@
 syntax ="proto3";
 package gotham;
 
-message PingMsg {
+message Ping {
     string message = 1;
+}
+
+message Error {
+    uint32 code = 1;
+    string message = 2;
 }

@@ -20,16 +20,16 @@ func TestRouterServe(t *testing.T) {
 		// log.Printf("[middleware]")
 	})
 
-	group.Handle("/PingMsg", func(ctx *Context) {
+	group.Handle("/Ping", func(ctx *Context) {
 		// log.Printf("[%s]", ctx.FullPath())
-		var msg PingMsg
+		var msg Ping
 		err := proto.Unmarshal(ctx.request.data, &msg)
 		if err != nil {
 			panic(err)
 		}
 		assert.Equal(t, str, msg.GetMessage())
 		msg.Message = "Pong"
-		ctx.WriteAny("/gotham/PingMsg", &msg)
+		ctx.WriteAny("/gotham/Ping", &msg)
 		// log.Printf("ping message: %s", msg.GetMessage())
 	})
 
@@ -43,11 +43,11 @@ func TestRouterServe(t *testing.T) {
 	}
 
 	// write request
-	pb := &PingMsg{Message: str}
+	pb := &Ping{Message: str}
 	b, _ := proto.Marshal(pb)
 
 	msg := &types.Any{
-		TypeUrl: "/gotham/PingMsg",
+		TypeUrl: "/gotham/Ping",
 		Value:   b,
 	}
 
@@ -77,9 +77,9 @@ func TestRouterServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "/gotham/PingMsg", req.url)
+	assert.Equal(t, "/gotham/Ping", req.url)
 
-	resp := &PingMsg{}
+	resp := &Ping{}
 	err = proto.Unmarshal(req.data, resp)
 	assert.Equal(t, "Pong", resp.GetMessage())
 
