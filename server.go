@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 )
 
 // ErrServerClosed is returned by the Server's Serve,
@@ -508,11 +508,7 @@ func (c *conn) serve() {
 		// set underline conn to active mode
 		c.setState(c.rwc, StateActive)
 
-		// read frame body
-		// TODO: byte array pooling
-		fb := make([]byte, fh.Length)
-		_, err = io.ReadFull(c.bufr, fb)
-
+		req, err := ReadFrameBody(c.bufr, fh)
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
 			// TODO: log error instead?
@@ -521,23 +517,18 @@ func (c *conn) serve() {
 			continue
 		}
 
-		// read frame body
-		var msg any.Any
-		err = proto.Unmarshal(fb, &msg)
-
-		if err != nil {
-			panic(err)
-		}
-
-		req := &Request{
-			conn: c,
-			url:  msg.GetTypeUrl(),
-			data: msg.GetValue(),
-		}
+		req.conn = c
 
 		// handle the message to router
 		if c.server.Handler != nil {
 			c.server.Handler.ServeProto(c.bufw, req)
+			// flush bufw, if any
+			// TODO: validation?
+			if c.bufw.Size() > 0 {
+				if err := c.bufw.Flush(); err != nil {
+					panic(err)
+				}
+			}
 		}
 
 		// set rwc to idle state again
@@ -649,8 +640,58 @@ func (fh *FrameHeader) validate() error {
 	return nil
 }
 
-// WriteData writes a data frame.
-func WriteData(w io.Writer, data []byte) (err error) {
+// ReadFrameHeader from the io reader.
+func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
+	pbuf := fhBytes.Get().(*[]byte)
+	defer fhBytes.Put(pbuf)
+
+	buf := *(pbuf)
+
+	_, err := io.ReadFull(r, buf[:frameHeaderLen])
+
+	if err != nil {
+		return FrameHeader{}, err
+	}
+
+	fh := FrameHeader{
+		Length: (uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2])),
+		Type:   FrameType(buf[3]),
+		Flags:  Flags(buf[4]),
+	}
+
+	err = fh.validate()
+	return fh, err
+}
+
+// ReadFrameBody from the io reader and frame header
+// it will return a request if succeed
+func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
+	// read frame body
+	// TODO: byte array pooling
+	fb := make([]byte, fh.Length)
+	_, err = io.ReadFull(r, fb)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// read frame body
+	var msg types.Any
+	err = proto.Unmarshal(fb, &msg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	req = &Request{
+		url:  msg.GetTypeUrl(),
+		data: msg.GetValue(),
+	}
+	return
+}
+
+// WriteFrame with the payload.
+func WriteFrame(w io.Writer, data []byte) (err error) {
 	var flags Flags
 	// flags |= FlagDataEndStream
 	flags |= FlagFrameAck
@@ -676,29 +717,6 @@ func WriteData(w io.Writer, data []byte) (err error) {
 	}
 
 	return err
-}
-
-// ReadFrameHeader from the given io reader
-func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
-	pbuf := fhBytes.Get().(*[]byte)
-	defer fhBytes.Put(pbuf)
-
-	buf := *(pbuf)
-
-	_, err := io.ReadFull(r, buf[:frameHeaderLen])
-
-	if err != nil {
-		return FrameHeader{}, err
-	}
-
-	fh := FrameHeader{
-		Length: (uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2])),
-		Type:   FrameType(buf[3]),
-		Flags:  Flags(buf[4]),
-	}
-
-	err = fh.validate()
-	return fh, err
 }
 
 // frame header bytes pool.

@@ -2,30 +2,35 @@ package gotham
 
 import (
 	"bufio"
-	"log"
 	"net"
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRouterServe(t *testing.T) {
+	str := "Ping"
+
 	r := New()
 	group := r.Group("/gotham")
 	group.Use(func(ctx *Context) {
-		log.Printf("[middleware]")
+		// log.Printf("[middleware]")
 	})
 
 	group.Handle("/PingMsg", func(ctx *Context) {
-		log.Printf("[%s]", ctx.FullPath())
+		// log.Printf("[%s]", ctx.FullPath())
 		var msg PingMsg
 		err := proto.Unmarshal(ctx.request.data, &msg)
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("ping message: %s", msg.GetMessage())
+		assert.Equal(t, str, msg.GetMessage())
+		msg.Message = "Pong"
+		ctx.WriteAny("/gotham/PingMsg", &msg)
+		// log.Printf("ping message: %s", msg.GetMessage())
 	})
 
 	go r.Run(":9001")
@@ -37,10 +42,11 @@ func TestRouterServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pb := &PingMsg{Message: "Ping"}
+	// write request
+	pb := &PingMsg{Message: str}
 	b, _ := proto.Marshal(pb)
 
-	msg := &any.Any{
+	msg := &types.Any{
 		TypeUrl: "/gotham/PingMsg",
 		Value:   b,
 	}
@@ -51,14 +57,33 @@ func TestRouterServe(t *testing.T) {
 	}
 
 	w := bufio.NewWriter(conn)
-	err = WriteData(w, packet)
+	br := bufio.NewReader(conn)
 
+	err = WriteFrame(w, packet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Flush()
+
+	time.Sleep(time.Millisecond * 5)
+
+	// read response
+	fh, err := ReadFrameHeader(br)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := ReadFrameBody(br, fh)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	w.Flush()
-	time.Sleep(time.Millisecond * 5)
+	assert.Equal(t, "/gotham/PingMsg", req.url)
 
-	// r.ServeProto(nil, &Request{URL: msg.TypeUrl})
+	resp := &PingMsg{}
+	err = proto.Unmarshal(req.data, resp)
+	assert.Equal(t, "Pong", resp.GetMessage())
+
+	// reader := bufio.NewReader(conn)
+	// packet, err = reader.Read()
+	time.Sleep(time.Millisecond * 5)
 }

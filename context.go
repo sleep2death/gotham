@@ -2,7 +2,11 @@ package gotham
 
 import (
 	"bufio"
+	"errors"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 )
 
 // Context is the most important part of gamerouter. It allows us to pass variables between middleware,
@@ -234,3 +238,38 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 /************************************/
 /************ INPUT DATA ************/
 /************************************/
+
+// ErrServerClosed is returned by the Server's Serve,
+var (
+	ErrEmptyURL  = errors.New("empty url")
+	ErrEmptyData = errors.New("empty data")
+)
+
+// Write types.Any message to connection
+func (c *Context) WriteAny(url string, msg proto.Message) (err error) {
+	if len(url) == 0 {
+		return ErrEmptyURL
+	}
+	return writeAny(c.writer, url, msg)
+}
+
+func writeAny(w *bufio.Writer, url string, msg proto.Message) (err error) {
+	// marshal output message
+	value, err := proto.Marshal(msg)
+	if err != nil {
+		return
+	}
+	// wrap the message to types.Any message
+	a := &types.Any{
+		TypeUrl: url,
+		Value:   value,
+	}
+	// marshal the "any" message
+	payload, err := proto.Marshal(a)
+	if err != nil {
+		return
+	}
+
+	err = WriteFrame(w, payload)
+	return
+}

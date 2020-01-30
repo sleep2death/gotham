@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 )
 
 func TestServe(t *testing.T) {
@@ -36,7 +36,7 @@ func TestServe(t *testing.T) {
 	}
 	content, _ := proto.Marshal(ping)
 
-	any := &any.Any{
+	any := &types.Any{
 		TypeUrl: proto.MessageName(ping),
 		Value:   content,
 	}
@@ -45,8 +45,8 @@ func TestServe(t *testing.T) {
 
 	// write two payloads at once
 	w := bufio.NewWriter(conn)
-	WriteData(w, payload)
-	WriteData(w, payload)
+	WriteFrame(w, payload)
+	WriteFrame(w, payload)
 	w.Flush()
 
 	// make the payload manually
