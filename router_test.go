@@ -1,13 +1,12 @@
 package gotham
 
 import (
-	"bufio"
+	"log"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,6 +17,7 @@ func TestRouterServe(t *testing.T) {
 	group := r.Group("/gotham")
 	group.Use(func(ctx *Context) {
 		// log.Printf("[middleware]")
+		assert.Equal(t, "/gotham/Ping", ctx.FullPath())
 	})
 
 	group.Handle("/Ping", func(ctx *Context) {
@@ -43,26 +43,14 @@ func TestRouterServe(t *testing.T) {
 	}
 
 	// write request
+	log.Println("write data to server")
+
+	w := newBufioWriter(conn)
+	br := newBufioReader(conn)
+
+	// write message frame to server
 	pb := &Ping{Message: str}
-	b, _ := proto.Marshal(pb)
-
-	msg := &types.Any{
-		TypeUrl: "/gotham/Ping",
-		Value:   b,
-	}
-
-	packet, err := proto.Marshal(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	w := bufio.NewWriter(conn)
-	br := bufio.NewReader(conn)
-
-	err = WriteFrame(w, packet)
-	if err != nil {
-		t.Fatal(err)
-	}
+	WriteFrame(w, pb)
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)

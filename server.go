@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -69,7 +70,7 @@ func (srv *Server) ListenAndServe() error {
 	}
 	addr := srv.Addr
 	if addr == "" {
-		addr = ":http"
+		addr = ":8080"
 	}
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -690,8 +691,32 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	return
 }
 
-// WriteFrame with the payload.
-func WriteFrame(w io.Writer, data []byte) (err error) {
+// WriteFrame with given url
+func WriteFrame(w io.Writer, pb proto.Message) error {
+	// marshal the payload pb
+	buf, err := proto.Marshal(pb)
+	if err != nil {
+		return err
+	}
+
+	// transfer dot to slash
+	url := "/" + strings.Replace(proto.MessageName(pb), ".", "/", -1)
+	// wrap it to any pb
+	any := &types.Any{
+		TypeUrl: url,
+		Value:   buf,
+	}
+	// marshal the any pb
+	buf, err = any.Marshal()
+	if err != nil {
+		return err
+	}
+	// write the frame head
+	return WriteData(w, buf)
+}
+
+// WriteData with the payload.
+func WriteData(w io.Writer, data []byte) (err error) {
 	var flags Flags
 	// flags |= FlagDataEndStream
 	flags |= FlagFrameAck

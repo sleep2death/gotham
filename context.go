@@ -270,6 +270,6 @@ func writeAny(w *bufio.Writer, url string, msg proto.Message) (err error) {
 		return
 	}
 
-	err = WriteFrame(w, payload)
+	err = WriteData(w, payload)
 	return
 }

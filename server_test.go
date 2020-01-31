@@ -23,6 +23,7 @@ func TestServe(t *testing.T) {
 
 	// starting the server
 	go server.Serve(ln)
+	defer server.Shutdown()
 	time.Sleep(time.Millisecond)
 
 	conn, err := net.Dial("tcp", ":9002")
@@ -45,8 +46,8 @@ func TestServe(t *testing.T) {
 
 	// write two payloads at once
 	w := bufio.NewWriter(conn)
-	WriteFrame(w, payload)
-	WriteFrame(w, payload)
+	WriteData(w, payload)
+	WriteData(w, payload)
 	w.Flush()
 
 	// make the payload manually
