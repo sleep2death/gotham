@@ -1,6 +1,17 @@
 syntax ="proto3";
 package gotham;
 
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.messagename_all) = true;
+
+// run "go get" commands OUTSIDE the project:
+
+// go get github.com/gogo/protobuf/proto
+// go get github.com/gogo/protobuf/protoc-gen-gogofaster
+// go get go get github.com/gogo/protobuf/gogoproto
+
+// generate: protoc -I=. -I=/home/aspirin/go/src/ --gogofaster_out=. *.proto
+
 message Ping {
     string message = 1;
 }

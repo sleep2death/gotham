@@ -5,6 +5,7 @@ package gotham
 
 import (
 	fmt "fmt"
+	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
@@ -23,10 +24,7 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Ping struct {
-	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 }
 
 func (m *Ping) Reset()         { *m = Ping{} }
@@ -69,12 +67,13 @@ func (m *Ping) GetMessage() string {
 	return ""
 }
 
+func (*Ping) XXX_MessageName() string {
+	return "gotham.Ping"
+}
+
 type Error struct {
-	Code                 uint32   `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Message              string   `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Code    uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 }
 
 func (m *Error) Reset()         { *m = Error{} }
@@ -124,6 +123,9 @@ func (m *Error) GetMessage() string {
 	return ""
 }
 
+func (*Error) XXX_MessageName() string {
+	return "gotham.Error"
+}
 func init() {
 	proto.RegisterType((*Ping)(nil), "gotham.Ping")
 	proto.RegisterType((*Error)(nil), "gotham.Error")
@@ -132,15 +134,18 @@ func init() {
 func init() { proto.RegisterFile("message.proto", fileDescriptor_33c57e4bae7b9afd) }
 
 var fileDescriptor_33c57e4bae7b9afd = []byte{
-	// 117 bytes of a gzipped FileDescriptorProto
+	// 164 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcd, 0x4d, 0x2d, 0x2e,
 	0x4e, 0x4c, 0x4f, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4b, 0xcf, 0x2f, 0xc9, 0x48,
-	0xcc, 0x55, 0x52, 0xe0, 0x62, 0x09, 0xc8, 0xcc, 0x4b, 0x17, 0x92, 0xe0, 0x62, 0x87, 0x2a, 0x90,
-	0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x82, 0x71, 0x95, 0x4c, 0xb9, 0x58, 0x5d, 0x8b, 0x8a, 0xf2,
-	0x8b, 0x84, 0x84, 0xb8, 0x58, 0x92, 0xf3, 0x53, 0x20, 0xf2, 0xbc, 0x41, 0x60, 0x36, 0xb2, 0x36,
-	0x26, 0x14, 0x6d, 0x4e, 0x3c, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0, 0x91,
-	0x1c, 0x63, 0x12, 0x1b, 0xd8, 0x56, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0xca, 0x4c, 0xfa,
-	0x9c, 0x86, 0x00, 0x00, 0x00,
+	0xcc, 0x95, 0xd2, 0x4d, 0xcf, 0x2c, 0xc9, 0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0xcf,
+	0x4f, 0xcf, 0xd7, 0x07, 0x4b, 0x27, 0x95, 0xa6, 0x81, 0x79, 0x60, 0x0e, 0x98, 0x05, 0xd1, 0xa6,
+	0xa4, 0xc0, 0xc5, 0x12, 0x90, 0x99, 0x97, 0x2e, 0x24, 0xc1, 0xc5, 0x0e, 0x35, 0x4f, 0x82, 0x51,
+	0x81, 0x51, 0x83, 0x33, 0x08, 0xc6, 0x55, 0x32, 0xe5, 0x62, 0x75, 0x2d, 0x2a, 0xca, 0x2f, 0x12,
+	0x12, 0xe2, 0x62, 0x49, 0xce, 0x4f, 0x81, 0xc8, 0xf3, 0x06, 0x81, 0xd9, 0xc8, 0xda, 0x98, 0x50,
+	0xb4, 0x39, 0xc9, 0x9c, 0x78, 0x24, 0xc7, 0x78, 0xe1, 0x91, 0x1c, 0xe3, 0x83, 0x47, 0x72, 0x8c,
+	0x13, 0x1e, 0xcb, 0x31, 0x9c, 0x78, 0x2c, 0xc7, 0x78, 0xe1, 0xb1, 0x1c, 0xc3, 0x8d, 0xc7, 0x72,
+	0x0c, 0x49, 0x6c, 0x60, 0xdb, 0x8d, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x4a, 0xde, 0x6c, 0x5f,
+	0xc5, 0x00, 0x00, 0x00,
 }
 
 func (m *Ping) Marshal() (dAtA []byte, err error) {
@@ -163,10 +168,6 @@ func (m *Ping) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Message) > 0 {
 		i -= len(m.Message)
 		copy(dAtA[i:], m.Message)
@@ -197,10 +198,6 @@ func (m *Error) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Message) > 0 {
 		i -= len(m.Message)
 		copy(dAtA[i:], m.Message)
@@ -237,9 +234,6 @@ func (m *Ping) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
 	return n
 }
 
@@ -255,9 +249,6 @@ func (m *Error) Size() (n int) {
 	l = len(m.Message)
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
 	}
 	return n
 }
@@ -344,7 +335,6 @@ func (m *Ping) Unmarshal(dAtA []byte) error {
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
 	}
@@ -449,7 +439,6 @@ func (m *Error) Unmarshal(dAtA []byte) error {
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
 	}
