@@ -109,11 +109,14 @@ func (rr *tHandler) ServeProto(w MessageWriter, req *Request) {
 	case "/gotham/Ping":
 		var msg Ping
 		msg.Message = "Pong"
-		err := w.WriteMessage(&msg)
-		if err != nil {
-			log.Println("error when write the message")
-			return
-		}
+		w.WriteMessage(&msg)
+	case "/gotham/Error":
+		var msg Error
+		msg.Code = 400
+		msg.Message = "Pong Error"
+
+		w.WriteMessage(&msg)
+		w.SetClose(true)
 	default:
 		log.Println("no url handler found")
 	}
@@ -219,13 +222,6 @@ func TestReadWriteData(t *testing.T) {
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
 
-type recorder struct {
-}
-
-func (rr *recorder) WriteMessage(msg proto.Message) error {
-	return nil
-}
-
 func TestWriteFrame(t *testing.T) {
 	addr := ":9000"
 	server := &Server{Addr: addr, Handler: &tHandler{}}
@@ -259,4 +255,41 @@ func TestWriteFrame(t *testing.T) {
 
 	WriteFrame(w, &Ping{Message: "Ping"})
 	w.Flush()
+
+	res, _ = readFrame(r)
+	proto.Unmarshal(res.Data, &pong)
+	assert.Equal(t, "Pong", pong.GetMessage())
+}
+
+func TestErrorFrame(t *testing.T) {
+	addr := ":9000"
+	server := &Server{Addr: addr, Handler: &tHandler{}}
+	go server.ListenAndServe()
+	defer server.Close()
+
+	time.Sleep(time.Millisecond * 5)
+	// connect to server
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := newBufioWriter(conn)
+	r := newBufioReader(conn)
+
+	WriteFrame(w, &Error{Code: 400, Message: "Ping Error"})
+	w.Flush()
+
+	// server close the conn because of the error
+	time.Sleep(time.Millisecond * 5)
+	server.mu.Lock()
+	assert.Equal(t, 0, len(server.activeConn))
+	server.mu.Unlock()
+
+	// still get the error response
+	var msg Error
+	res, _ := readFrame(r)
+	proto.Unmarshal(res.Data, &msg)
+	assert.Equal(t, "Pong Error", msg.GetMessage())
+
 }

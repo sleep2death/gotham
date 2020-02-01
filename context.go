@@ -247,3 +247,8 @@ var (
 func (c *Context) WriteMessage(msg proto.Message) (err error) {
 	return c.writer.WriteMessage(msg)
 }
+
+//  close connection after write
+func (c *Context) Close() {
+	c.writer.SetClose(true)
+}

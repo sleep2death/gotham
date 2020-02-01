@@ -534,7 +534,7 @@ func (c *conn) serve() {
 
 				// flush bufw, if any
 				// TODO: validation?
-				if w.Writer.Size() > 0 {
+				if w.Size() > 0 {
 					if d := c.server.WriteTimeout; d != 0 {
 						c.rwc.SetWriteDeadline(time.Now().Add(d))
 					}
@@ -770,8 +770,6 @@ type MessageWriter interface {
 	// if the server should close the conn after flush the writer
 	SetClose(b bool)
 	Close() bool
-
-	Size() int
 }
 
 type ResponseWriter struct {
