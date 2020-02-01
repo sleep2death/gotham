@@ -13,12 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type responseRecorder struct {
-}
-
-func (rr *responseRecorder) ServeProto() {
-}
-
 func TestListenAndServe(t *testing.T) {
 	addr := "fataladdr"
 	err := ListenAndServe(addr, nil)
@@ -223,6 +217,13 @@ func TestReadWriteData(t *testing.T) {
 	res, err = readFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
+}
+
+type recorder struct {
+}
+
+func (rr *recorder) WriteMessage(msg proto.Message) error {
+	return nil
 }
 
 func TestWriteFrame(t *testing.T) {

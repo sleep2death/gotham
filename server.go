@@ -521,17 +521,20 @@ func (c *conn) serve() {
 				panic(err)
 			}
 
-			if req != nil && c.server.Handler != nil {
+			if req != nil {
 				req.Conn = c
 				// handle the message to router
 				w := &ResponseWriter{
 					Writer: c.bufw,
 				}
-				c.server.Handler.ServeProto(w, req)
+
+				if c.server.Handler != nil {
+					c.server.Handler.ServeProto(w, req)
+				}
 
 				// flush bufw, if any
 				// TODO: validation?
-				if c.bufw.Size() > 0 {
+				if w.Writer.Size() > 0 {
 					if d := c.server.WriteTimeout; d != 0 {
 						c.rwc.SetWriteDeadline(time.Now().Add(d))
 					}
@@ -539,6 +542,11 @@ func (c *conn) serve() {
 					if err := c.bufw.Flush(); err != nil {
 						panic(err)
 					}
+				}
+
+				// if the writer require close, then return and close the conn
+				if w.Close() {
+					return
 				}
 			}
 		}
@@ -758,9 +766,12 @@ func WriteData(w io.Writer, data []byte) (err error) {
 
 type MessageWriter interface {
 	WriteMessage(message proto.Message) error
+
 	// if the server should close the conn after flush the writer
 	SetClose(b bool)
 	Close() bool
+
+	Size() int
 }
 
 type ResponseWriter struct {
@@ -780,6 +791,10 @@ func (rw *ResponseWriter) Close() bool {
 
 func (rw *ResponseWriter) SetClose(b bool) {
 	rw.close = b
+}
+
+func (rw *ResponseWriter) Size() int {
+	return rw.Writer.Size()
 }
 
 // frame header bytes pool.
