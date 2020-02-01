@@ -21,7 +21,7 @@ import (
 var ErrServerClosed = errors.New("tcp: Server closed")
 
 type Handler interface {
-	ServeProto(*bufio.Writer, *Request)
+	ServeProto(MessageWriter, *Request)
 }
 
 // Server instance
@@ -68,10 +68,12 @@ func (srv *Server) ListenAndServe() error {
 	if srv.shuttingDown() {
 		return ErrServerClosed
 	}
+
 	addr := srv.Addr
-	if addr == "" {
-		addr = ":8080"
+	if len(addr) == 0 {
+		return errors.New("empty address")
 	}
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
@@ -376,9 +378,9 @@ const (
 
 // Request wrap the connection and other userful information of the client's request
 type Request struct {
-	conn *conn
-	url  string
-	data []byte
+	Conn *conn
+	URL  string
+	Data []byte
 }
 
 type conn struct {
@@ -465,6 +467,7 @@ func (c *conn) finalFlush() {
 // Close the connection.
 func (c *conn) close() {
 	c.finalFlush()
+	// close it anyway
 	_ = c.rwc.Close()
 }
 
@@ -495,39 +498,47 @@ func (c *conn) serve() {
 
 	// conn loop start
 	for {
+		// handle connection timeout
+		if d := c.server.ReadTimeout; d != 0 {
+			c.rwc.SetReadDeadline(time.Now().Add(d))
+		}
 		// read frame header
 		fh, err := ReadFrameHeader(c.bufr)
-
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
 			// TODO: log error instead?
 			panic(err)
-		} else if err == io.EOF {
-			continue
 		}
 
 		// set underline conn to active mode
 		c.setState(c.rwc, StateActive)
 
-		req, err := ReadFrameBody(c.bufr, fh)
-		// it's ok to continue, when reached the EOF
-		if err != nil && err != io.EOF {
-			// TODO: log error instead?
-			panic(err)
-		} else if err == io.EOF {
-			continue
-		}
+		if fh.Length > 0 {
+			req, err := ReadFrameBody(c.bufr, fh)
+			// it's ok to continue, when reached the EOF
+			if err != nil && err != io.EOF {
+				// TODO: log error instead?
+				panic(err)
+			}
 
-		req.conn = c
+			if req != nil && c.server.Handler != nil {
+				req.Conn = c
+				// handle the message to router
+				w := &ResponseWriter{
+					Writer: c.bufw,
+				}
+				c.server.Handler.ServeProto(w, req)
 
-		// handle the message to router
-		if c.server.Handler != nil {
-			c.server.Handler.ServeProto(c.bufw, req)
-			// flush bufw, if any
-			// TODO: validation?
-			if c.bufw.Size() > 0 {
-				if err := c.bufw.Flush(); err != nil {
-					panic(err)
+				// flush bufw, if any
+				// TODO: validation?
+				if c.bufw.Size() > 0 {
+					if d := c.server.WriteTimeout; d != 0 {
+						c.rwc.SetWriteDeadline(time.Now().Add(d))
+					}
+
+					if err := c.bufw.Flush(); err != nil {
+						panic(err)
+					}
 				}
 			}
 		}
@@ -536,7 +547,7 @@ func (c *conn) serve() {
 		c.setState(c.rwc, StateIdle)
 		// handle connection idle
 		if d := c.server.idleTimeout(); d != 0 {
-			err = c.rwc.SetReadDeadline(time.Now().Add(d))
+			c.rwc.SetReadDeadline(time.Now().Add(d))
 			if _, err := c.bufr.Peek(4); err != nil {
 				return
 			}
@@ -641,13 +652,14 @@ func (fh *FrameHeader) validate() error {
 	return nil
 }
 
+// Help functions for reading and writing frame
+
 // ReadFrameHeader from the io reader.
 func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
 	pbuf := fhBytes.Get().(*[]byte)
 	defer fhBytes.Put(pbuf)
 
 	buf := *(pbuf)
-
 	_, err := io.ReadFull(r, buf[:frameHeaderLen])
 
 	if err != nil {
@@ -668,7 +680,7 @@ func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
 // it will return a request if succeed
 func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	// read frame body
-	// TODO: byte array pooling
+	// TODO: byte array pooling?
 	fb := make([]byte, fh.Length)
 	_, err = io.ReadFull(r, fb)
 
@@ -685,8 +697,8 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	}
 
 	req = &Request{
-		url:  msg.GetTypeUrl(),
-		data: msg.GetValue(),
+		URL:  msg.GetTypeUrl(),
+		Data: msg.GetValue(),
 	}
 	return
 }
@@ -742,6 +754,32 @@ func WriteData(w io.Writer, data []byte) (err error) {
 	}
 
 	return err
+}
+
+type MessageWriter interface {
+	WriteMessage(message proto.Message) error
+	// if the server should close the conn after flush the writer
+	SetClose(b bool)
+	Close() bool
+}
+
+type ResponseWriter struct {
+	Writer *bufio.Writer
+	// if "Close" set to true by someone,
+	// then server will close this conn
+	close bool
+}
+
+func (rw *ResponseWriter) WriteMessage(msg proto.Message) error {
+	return WriteFrame(rw.Writer, msg)
+}
+
+func (rw *ResponseWriter) Close() bool {
+	return rw.close
+}
+
+func (rw *ResponseWriter) SetClose(b bool) {
+	rw.close = b
 }
 
 // frame header bytes pool.

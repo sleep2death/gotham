@@ -1,7 +1,6 @@
 package gotham
 
 import (
-	"bufio"
 	"math"
 	"sync"
 )
@@ -131,7 +130,7 @@ func (r *Router) Run(addr string) (err error) {
 }
 
 // Serve conforms to the Handler interface.
-func (r *Router) ServeProto(w *bufio.Writer, req *Request) {
+func (r *Router) ServeProto(w MessageWriter, req *Request) {
 	// get context from pool
 	c := r.pool.Get().(*Context)
 	c.reset()
@@ -139,7 +138,7 @@ func (r *Router) ServeProto(w *bufio.Writer, req *Request) {
 	c.writer = w
 	c.request = req
 	// Find route in the tree
-	value := r.root.getValue(c.request.url, nil, false)
+	value := r.root.getValue(c.request.URL, nil, false)
 	if value.handlers != nil {
 		c.handlers = value.handlers
 		c.fullPath = value.fullPath

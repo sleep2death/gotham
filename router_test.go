@@ -23,13 +23,8 @@ func TestRouterServe(t *testing.T) {
 	group.Handle("/Ping", func(ctx *Context) {
 		// log.Printf("[%s]", ctx.FullPath())
 		var msg Ping
-		err := proto.Unmarshal(ctx.request.data, &msg)
-		if err != nil {
-			panic(err)
-		}
-		assert.Equal(t, str, msg.GetMessage())
 		msg.Message = "Pong"
-		ctx.WriteAny("/gotham/Ping", &msg)
+		ctx.WriteMessage(&msg)
 		// log.Printf("ping message: %s", msg.GetMessage())
 	})
 
@@ -65,10 +60,10 @@ func TestRouterServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "/gotham/Ping", req.url)
+	assert.Equal(t, "/gotham/Ping", req.URL)
 
 	resp := &Ping{}
-	err = proto.Unmarshal(req.data, resp)
+	err = proto.Unmarshal(req.Data, resp)
 	assert.Equal(t, "Pong", resp.GetMessage())
 
 	// reader := bufio.NewReader(conn)
