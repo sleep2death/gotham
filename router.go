@@ -2,6 +2,7 @@ package gotham
 
 import (
 	"math"
+	"net/http"
 	"sync"
 )
 
@@ -69,6 +70,19 @@ func New() *Router {
 	return router
 }
 
+// Default returns a Router instance with the Logger and Recovery middleware already attached.
+func Default() *Router {
+	// debugPrintWARNINGDefault()
+	router := New()
+	router.NoRoute(DefaultNoRouteHandler)
+	// engine.Use(Logger(), Recovery())
+	return router
+}
+
+func DefaultNoRouteHandler(c *Context) {
+	c.WriteError(http.StatusNotFound, "route not found", true)
+}
+
 func (router *Router) allocateContext() *Context {
 	return &Context{router: router}
 }
@@ -129,25 +143,41 @@ func (r *Router) Run(addr string) (err error) {
 	return
 }
 
+// HandleContext re-enter a context that has been rewritten.
+// This can be done by setting c.Request.URL.Path to your new target.
+// Disclaimer: You can loop yourself to death with this, use wisely.
+func (router *Router) HandleContext(c *Context) {
+	oldIndexValue := c.index
+	c.reset()
+	router.handleProtoRequest(c)
+	c.index = oldIndexValue
+}
+
 // Serve conforms to the Handler interface.
 func (r *Router) ServeProto(w MessageWriter, req *Request) {
 	// get context from pool
 	c := r.pool.Get().(*Context)
-	c.reset()
-
+	// reset context
 	c.Writer = w
 	c.Request = req
+	c.reset()
+
+	r.handleProtoRequest(c)
+
+	// put context back to the pool
+	r.pool.Put(c)
+}
+
+func (router *Router) handleProtoRequest(c *Context) {
 	// Find route in the tree
-	value := r.root.getValue(c.Request.URL, nil, false)
+	value := router.root.getValue(c.Request.URL, nil, false)
 	if value.handlers != nil {
 		c.handlers = value.handlers
 		c.fullPath = value.fullPath
 	} else {
 		// no route was found
-		c.handlers = r.allNoRoute
+		c.handlers = router.allNoRoute
 	}
 	c.Next()
 
-	// put context back to the pool
-	r.pool.Put(c)
 }

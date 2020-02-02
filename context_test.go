@@ -25,7 +25,7 @@ func TestContextReset(t *testing.T) {
 	assert.Nil(t, c.Keys)
 	assert.Len(t, c.Errors, 0)
 	assert.EqualValues(t, c.index, -1)
-	assert.Nil(t, c.Writer)
+	assert.NotNil(t, c.Writer)
 }
 
 // CreateTestContext returns a fresh engine and context for testing purposes

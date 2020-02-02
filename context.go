@@ -31,7 +31,6 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Writer = nil
 	c.handlers = nil
 	c.index = -1
 	c.fullPath = ""
@@ -245,11 +244,11 @@ var (
 )
 
 // Write message to connection
-func (c *Context) WriteMessage(msg proto.Message) (err error) {
+func (c *Context) WriteMessage(msg proto.Message) error {
 	return c.Writer.WriteMessage(msg)
 }
 
-func (c *Context) WriteError(code int, message string, close bool) (err error) {
+func (c *Context) WriteError(code int, message string, close bool) error {
 	c.Writer.SetClose(close)
 	return c.Writer.WriteMessage(&Error{Code: uint32(code), Message: message})
 }
