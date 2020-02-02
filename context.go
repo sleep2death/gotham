@@ -23,7 +23,7 @@ type Context struct {
 	Errors []error
 
 	Writer  MessageWriter
-	request *Request
+	Request *Request
 }
 
 /************************************/
@@ -31,6 +31,7 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
+	c.Writer = nil
 	c.handlers = nil
 	c.index = -1
 	c.fullPath = ""
@@ -69,7 +70,7 @@ func (c *Context) FullPath() string {
 }
 
 func (c *Context) Data() []byte {
-	return c.request.Data
+	return c.Request.Data
 }
 
 /************************************/
@@ -246,6 +247,11 @@ var (
 // Write message to connection
 func (c *Context) WriteMessage(msg proto.Message) (err error) {
 	return c.Writer.WriteMessage(msg)
+}
+
+func (c *Context) WriteError(code int, message string, close bool) (err error) {
+	c.Writer.SetClose(close)
+	return c.Writer.WriteMessage(&Error{Code: uint32(code), Message: message})
 }
 
 //  close connection after write

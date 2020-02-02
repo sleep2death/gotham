@@ -136,9 +136,9 @@ func (r *Router) ServeProto(w MessageWriter, req *Request) {
 	c.reset()
 
 	c.Writer = w
-	c.request = req
+	c.Request = req
 	// Find route in the tree
-	value := r.root.getValue(c.request.URL, nil, false)
+	value := r.root.getValue(c.Request.URL, nil, false)
 	if value.handlers != nil {
 		c.handlers = value.handlers
 		c.fullPath = value.fullPath
