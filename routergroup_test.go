@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,7 +54,7 @@ func TestRouterGroupBasicHandle(t *testing.T) {
 	assert.Equal(t, "/v1/login/", login.BasePath())
 
 	handler := func(c *Context) {
-		c.WriteMessage(&Error{Code: 400, Message: fmt.Sprintf("index %d", c.index)})
+		c.WriteMessage(&pb.Error{Code: 400, Message: fmt.Sprintf("index %d", c.index)})
 		c.Close()
 	}
 	v1.Handle("/test", handler)
@@ -62,7 +63,7 @@ func TestRouterGroupBasicHandle(t *testing.T) {
 	var rc recorder
 	router.ServeProto(&rc, &Request{URL: "/v1/login/test"})
 
-	resp, ok := rc.Message.(*Error)
+	resp, ok := rc.Message.(*pb.Error)
 	assert.Equal(t, true, ok, "should return protobuf message.")
 	assert.Equal(t, uint32(400), resp.GetCode())
 	assert.Equal(t, "index 3", resp.GetMessage())

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -175,9 +176,9 @@ func TestContextHandler(t *testing.T) {
 func TestContextWriteMessage(t *testing.T) {
 	w := &recorder{}
 	c, _ := CreateTestContext(w)
-	c.WriteMessage(&Ping{Message: "Hello"})
+	c.WriteMessage(&pb.Ping{Message: "Hello"})
 
-	assert.Equal(t, "Hello", w.Message.(*Ping).GetMessage())
+	assert.Equal(t, "Hello", w.Message.(*pb.Ping).GetMessage())
 }
 
 func TestContextWriteError(t *testing.T) {
@@ -185,6 +186,6 @@ func TestContextWriteError(t *testing.T) {
 	c, _ := CreateTestContext(w)
 	c.WriteError(http.StatusBadRequest, "bad request", true)
 
-	assert.Equal(t, "bad request", w.Message.(*Error).GetMessage())
-	assert.Equal(t, uint32(http.StatusBadRequest), w.Message.(*Error).GetCode())
+	assert.Equal(t, "bad request", w.Message.(*pb.Error).GetMessage())
+	assert.Equal(t, uint32(http.StatusBadRequest), w.Message.(*pb.Error).GetCode())
 }

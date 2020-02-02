@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/sleep2death/gotham/pb"
 )
 
 // Context is the most important part of gamerouter. It allows us to pass variables between middleware,
@@ -250,7 +251,7 @@ func (c *Context) WriteMessage(msg proto.Message) error {
 
 func (c *Context) WriteError(code int, message string, close bool) error {
 	c.Writer.SetClose(close)
-	return c.Writer.WriteMessage(&Error{Code: uint32(code), Message: message})
+	return c.Writer.WriteMessage(&pb.Error{Code: uint32(code), Message: message})
 }
 
 //  close connection after write

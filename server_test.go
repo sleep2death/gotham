@@ -10,6 +10,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
+	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,10 +87,10 @@ func TestServe(t *testing.T) {
 	}
 
 	w := bufio.NewWriter(conn)
-	pb := &Ping{
+	msg := &pb.Ping{
 		Message: "Ping",
 	}
-	WriteFrame(w, pb)
+	WriteFrame(w, msg)
 	w.Flush()
 
 	// sleep 100ms, so the conn will be idle, and closed
@@ -106,12 +107,12 @@ type tHandler struct {
 
 func (rr *tHandler) ServeProto(w MessageWriter, req *Request) {
 	switch req.URL {
-	case "/gotham/Ping":
-		var msg Ping
+	case "/pb/Ping":
+		var msg pb.Ping
 		msg.Message = "Pong"
 		w.WriteMessage(&msg)
-	case "/gotham/Error":
-		var msg Error
+	case "/pb/Error":
+		var msg pb.Error
 		msg.Code = 400
 		msg.Message = "Pong Error"
 
@@ -145,13 +146,13 @@ func TestReadWriteData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ping := &Ping{
+	ping := &pb.Ping{
 		Message: "Ping",
 	}
 	content, _ := proto.Marshal(ping)
 
 	any := &types.Any{
-		TypeUrl: "/gotham/Ping",
+		TypeUrl: "/pb/Ping",
 		Value:   content,
 	}
 
@@ -167,7 +168,7 @@ func TestReadWriteData(t *testing.T) {
 
 	// wait for response
 	time.Sleep(time.Millisecond * 5)
-	var pong Ping
+	var pong pb.Ping
 	// read one
 	res, err := readFrame(r)
 	proto.Unmarshal(res.Data, &pong)
@@ -238,11 +239,11 @@ func TestWriteFrame(t *testing.T) {
 	w := newBufioWriter(conn)
 	r := newBufioReader(conn)
 
-	WriteFrame(w, &Ping{Message: "Ping"})
+	WriteFrame(w, &pb.Ping{Message: "Ping"})
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)
-	var pong Ping
+	var pong pb.Ping
 	res, _ := readFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
@@ -253,7 +254,7 @@ func TestWriteFrame(t *testing.T) {
 	w = newBufioWriter(conn)
 	r = newBufioReader(conn)
 
-	WriteFrame(w, &Ping{Message: "Ping"})
+	WriteFrame(w, &pb.Ping{Message: "Ping"})
 	w.Flush()
 
 	res, _ = readFrame(r)
@@ -277,7 +278,7 @@ func TestErrorFrame(t *testing.T) {
 	w := newBufioWriter(conn)
 	r := newBufioReader(conn)
 
-	WriteFrame(w, &Error{Code: 400, Message: "Ping Error"})
+	WriteFrame(w, &pb.Error{Code: 400, Message: "Ping Error"})
 	w.Flush()
 
 	// server close the conn because of the error
@@ -287,7 +288,7 @@ func TestErrorFrame(t *testing.T) {
 	server.mu.Unlock()
 
 	// still get the error response
-	var msg Error
+	var msg pb.Error
 	res, _ := readFrame(r)
 	proto.Unmarshal(res.Data, &msg)
 	assert.Equal(t, "Pong Error", msg.GetMessage())

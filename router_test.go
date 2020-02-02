@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -123,13 +124,13 @@ func TestEngineHandleContext(t *testing.T) {
 	})
 	v2 := r.Group("/v2")
 	v2.Handle("/redirect", func(c *Context) {
-		c.WriteMessage(&Ping{Message: "redirect"})
+		c.WriteMessage(&pb.Ping{Message: "redirect"})
 	})
 
 	assert.NotPanics(t, func() {
 		w := &recorder{}
 		r.ServeProto(w, &Request{URL: "/"})
-		assert.Equal(t, "redirect", w.Message.(*Ping).GetMessage())
+		assert.Equal(t, "redirect", w.Message.(*pb.Ping).GetMessage())
 	})
 }
 
@@ -140,29 +141,27 @@ func TestRouterServe(t *testing.T) {
 	str := "Ping"
 
 	r := New()
-	group := r.Group("/gotham")
+	group := r.Group("/pb")
 	group.Use(func(ctx *Context) {
 		// log.Printf("[middleware]")
-		assert.Equal(t, "/gotham/Ping", ctx.FullPath())
+		assert.Equal(t, "/pb/Ping", ctx.FullPath())
 	})
 
 	group.Handle("/Ping", func(ctx *Context) {
-		// log.Printf("[%s]", ctx.FullPath())
-		var msg Ping
+		var msg pb.Ping
+		proto.Unmarshal(ctx.Data(), &msg)
 		msg.Message = "Pong"
 		ctx.WriteMessage(&msg)
 		// log.Printf("ping message: %s", msg.GetMessage())
 	})
 
 	go r.Run(":9001")
-
 	time.Sleep(time.Millisecond)
 
 	conn, err := net.Dial("tcp", ":9001")
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	// write request
 	// log.Println("write data to server")
 
@@ -170,12 +169,11 @@ func TestRouterServe(t *testing.T) {
 	br := newBufioReader(conn)
 
 	// write message frame to server
-	pb := &Ping{Message: str}
-	WriteFrame(w, pb)
+	msg := &pb.Ping{Message: str}
+	WriteFrame(w, msg)
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)
-
 	// read response
 	fh, err := ReadFrameHeader(br)
 	if err != nil {
@@ -186,9 +184,8 @@ func TestRouterServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "/gotham/Ping", req.URL)
-
-	resp := &Ping{}
+	assert.Equal(t, "/pb/Ping", req.URL)
+	resp := &pb.Ping{}
 	err = proto.Unmarshal(req.Data, resp)
 	assert.Equal(t, "Pong", resp.GetMessage())
 
