@@ -135,7 +135,7 @@ func (r *Router) ServeProto(w MessageWriter, req *Request) {
 	c := r.pool.Get().(*Context)
 	c.reset()
 
-	c.writer = w
+	c.Writer = w
 	c.request = req
 	// Find route in the tree
 	value := r.root.getValue(c.request.URL, nil, false)

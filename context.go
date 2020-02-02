@@ -16,13 +16,13 @@ type Context struct {
 	index    int8
 	fullPath string
 
-	// keys is a key/value pair exclusively for the context of each request.
-	keys map[string]interface{}
+	// Keys is a key/value pair exclusively for the context of each request.
+	Keys map[string]interface{}
 
-	// errors is a list of errors attached to all the handlers/middlewares who used this context.
-	errors []error
+	// Errors is a list of Errors attached to all the handlers/middlewares who used this context.
+	Errors []error
 
-	writer  MessageWriter
+	Writer  MessageWriter
 	request *Request
 }
 
@@ -34,8 +34,8 @@ func (c *Context) reset() {
 	c.handlers = nil
 	c.index = -1
 	c.fullPath = ""
-	c.keys = nil
-	c.errors = c.errors[0:0]
+	c.Keys = nil
+	c.Errors = c.Errors[0:0]
 }
 
 // HandlerName returns the main handler's name. For example if the handler is "handleGetUsers()",
@@ -114,7 +114,7 @@ func (c *Context) Error(err error) {
 		panic("err is nil")
 	}
 
-	c.errors = append(c.errors, err)
+	c.Errors = append(c.Errors, err)
 }
 
 /************************************/
@@ -124,16 +124,16 @@ func (c *Context) Error(err error) {
 // Set is used to store a new key/value pair exclusively for this context.
 // It also lazy initializes  c.Keys if it was not used previously.
 func (c *Context) Set(key string, value interface{}) {
-	if c.keys == nil {
-		c.keys = make(map[string]interface{})
+	if c.Keys == nil {
+		c.Keys = make(map[string]interface{})
 	}
-	c.keys[key] = value
+	c.Keys[key] = value
 }
 
 // Get returns the value for the given key, ie: (value, true).
 // If the value does not exists it returns (nil, false)
 func (c *Context) Get(key string) (value interface{}, exists bool) {
-	value, exists = c.keys[key]
+	value, exists = c.Keys[key]
 	return
 }
 
@@ -245,10 +245,10 @@ var (
 
 // Write message to connection
 func (c *Context) WriteMessage(msg proto.Message) (err error) {
-	return c.writer.WriteMessage(msg)
+	return c.Writer.WriteMessage(msg)
 }
 
 //  close connection after write
 func (c *Context) Close() {
-	c.writer.SetClose(true)
+	c.Writer.SetClose(true)
 }
