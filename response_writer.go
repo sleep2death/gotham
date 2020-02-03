@@ -1,7 +1,7 @@
 package gotham
 
 import (
-	"bufio"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -11,18 +11,16 @@ import (
 )
 
 const (
-	noWritten     = -1
-	defaultStatus = http.StatusOK
+	noWritten        = -1
+	defaultKeepAlive = true
+	defaultStatus    = http.StatusOK
 )
 
-// RespWriter interface is used by a handler to construct an protobuf response.
-type RespWriter interface {
-	// Set the response status code of the current request.
-	SetStatus(statusCode int)
+var (
+	ErrNotFlusher = errors.New("this writer is not a flusher")
+)
 
-	// Returns the response status code of the current request.
-	Status() int
-
+type BufWriter interface {
 	// Write the protobuf into sending buffer.
 	Write(message proto.Message) error
 
@@ -30,14 +28,36 @@ type RespWriter interface {
 	// See Written()
 	Size() int
 
-	// Returns true if the response was already written.
-	Written() bool
+	// Flush writes any buffered data to the underlying io.Writer.
+	Flush() error
+}
+
+// RespWriter interface is used by a handler to construct an protobuf response.
+type RespWriter interface {
+	BufWriter
+
+	// Set the response status code of the current request.
+	SetStatus(statusCode int)
+
+	// Returns the response status code of the current request.
+	Status() int
+
+	// Returns false if the server should close the connection after flush the data.
+	KeepAlive() bool
 }
 
 type respWriter struct {
-	writer *bufio.Writer
-	size   int
-	status int
+	writer    io.Writer
+	status    int
+	keepAlive bool
+}
+
+func NewRespWriter(w io.Writer) *respWriter {
+	rw := &respWriter{}
+	rw.writer = w
+	rw.keepAlive = true
+	rw.status = defaultStatus
+	return rw
 }
 
 func (rw *respWriter) SetStatus(code int) {
@@ -49,14 +69,17 @@ func (rw *respWriter) Status() int {
 }
 
 func (rw *respWriter) Size() int {
-	if rw.writer != nil {
-		return rw.writer.Buffered()
+	if w, ok := rw.writer.(BufWriter); ok {
+		return w.Size()
 	}
-	return 0
+	return noWritten
 }
 
-func (rw *respWriter) Written() bool {
-	return rw.Size() > 0
+func (rw *respWriter) Flush() error {
+	if w, ok := rw.writer.(BufWriter); ok {
+		return w.Flush()
+	}
+	return ErrNotFlusher
 }
 
 func (rw *respWriter) Write(message proto.Message) error {
