@@ -4,7 +4,6 @@ import (
 	fmt "fmt"
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,24 +25,6 @@ func TestRouterGroupBasic(t *testing.T) {
 	assert.Equal(t, router, group2.engine)
 }
 
-type recorder struct {
-	Message proto.Message
-	close   bool
-}
-
-func (rr *recorder) WriteMessage(msg proto.Message) error {
-	rr.Message = msg
-	return nil
-}
-
-func (rr *recorder) SetClose(value bool) {
-	rr.close = value
-}
-
-func (rr *recorder) Close() bool {
-	return rr.close
-}
-
 func TestRouterGroupBasicHandle(t *testing.T) {
 	router := New()
 
@@ -55,12 +36,12 @@ func TestRouterGroupBasicHandle(t *testing.T) {
 
 	handler := func(c *Context) {
 		c.WriteMessage(&pb.Error{Code: 400, Message: fmt.Sprintf("index %d", c.index)})
-		c.Close()
+		c.Writer.(*respRecorder).keepAlive = false
 	}
 	v1.Handle("/test", handler)
 	login.Handle("/test", handler)
 
-	var rc recorder
+	var rc respRecorder
 	router.ServeProto(&rc, &Request{URL: "/v1/login/test"})
 
 	resp, ok := rc.Message.(*pb.Error)

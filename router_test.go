@@ -128,7 +128,7 @@ func TestEngineHandleContext(t *testing.T) {
 	})
 
 	assert.NotPanics(t, func() {
-		w := &recorder{}
+		w := &respRecorder{}
 		r.ServeProto(w, &Request{URL: "/"})
 		assert.Equal(t, "redirect", w.Message.(*pb.Ping).GetMessage())
 	})

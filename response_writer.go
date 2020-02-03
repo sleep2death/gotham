@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	noWritten        = -1
+	noWritten        = 0
 	defaultKeepAlive = true
 	defaultStatus    = http.StatusOK
 )
@@ -20,21 +20,18 @@ var (
 	ErrNotFlusher = errors.New("this writer is not a flusher")
 )
 
-type BufWriter interface {
-	// Write the protobuf into sending buffer.
-	Write(message proto.Message) error
+type BufFlusher interface {
+	// Flush writes any buffered data to the underlying io.Writer.
+	Flush() error
 
 	// Returns the number of bytes already written into the response.
 	// See Written()
-	Size() int
-
-	// Flush writes any buffered data to the underlying io.Writer.
-	Flush() error
+	Buffered() int
 }
 
-// RespWriter interface is used by a handler to construct an protobuf response.
-type RespWriter interface {
-	BufWriter
+// ResponseWriter interface is used by a handler to construct an protobuf response.
+type ResponseWriter interface {
+	BufFlusher
 
 	// Set the response status code of the current request.
 	SetStatus(statusCode int)
@@ -44,46 +41,67 @@ type RespWriter interface {
 
 	// Returns false if the server should close the connection after flush the data.
 	KeepAlive() bool
+
+	// Write the protobuf into sending buffer.
+	Write(message proto.Message) error
 }
 
-type respWriter struct {
+// responseWriter implements interface ResponseWriter
+type responseWriter struct {
 	writer    io.Writer
 	status    int
 	keepAlive bool
 }
 
-func NewRespWriter(w io.Writer) *respWriter {
-	rw := &respWriter{}
+func NewResponseWriter(w io.Writer) *responseWriter {
+	rw := &responseWriter{}
 	rw.writer = w
 	rw.keepAlive = true
 	rw.status = defaultStatus
 	return rw
 }
 
-func (rw *respWriter) SetStatus(code int) {
+func (rw *responseWriter) SetStatus(code int) {
 	rw.status = code
 }
 
-func (rw *respWriter) Status() int {
+func (rw *responseWriter) Status() int {
 	return rw.status
 }
 
-func (rw *respWriter) Size() int {
-	if w, ok := rw.writer.(BufWriter); ok {
-		return w.Size()
+func (rw *responseWriter) KeepAlive() bool {
+	return rw.keepAlive
+}
+
+func (rw *responseWriter) Buffered() int {
+	if w, ok := rw.writer.(BufFlusher); ok {
+		return w.Buffered()
 	}
 	return noWritten
 }
 
-func (rw *respWriter) Flush() error {
-	if w, ok := rw.writer.(BufWriter); ok {
+func (rw *responseWriter) Flush() error {
+	if w, ok := rw.writer.(BufFlusher); ok {
 		return w.Flush()
 	}
 	return ErrNotFlusher
 }
 
-func (rw *respWriter) Write(message proto.Message) error {
+func (rw *responseWriter) Write(message proto.Message) error {
 	return WriteFrame(rw.writer, message)
+}
+
+type respRecorder struct {
+	responseWriter
+	Message proto.Message
+}
+
+func (rr *respRecorder) Write(message proto.Message) error {
+	rr.Message = message
+	if rr.writer != nil {
+		return WriteFrame(rr.writer, message)
+	}
+	return nil
 }
 
 // WriteFrame with given url

@@ -20,7 +20,7 @@ import (
 var ErrServerClosed = errors.New("tcp: Server closed")
 
 type Handler interface {
-	ServeProto(MessageWriter, *Request)
+	ServeProto(ResponseWriter, *Request)
 }
 
 // Server instance
@@ -523,9 +523,7 @@ func (c *conn) serve() {
 			if req != nil {
 				req.Conn = c
 				// handle the message to router
-				w := &ResponseWriter{
-					Writer: c.bufw,
-				}
+				w := NewResponseWriter(c.bufw)
 
 				if c.server.Handler != nil {
 					c.server.Handler.ServeProto(w, req)
@@ -533,18 +531,18 @@ func (c *conn) serve() {
 
 				// flush bufw, if any
 				// TODO: validation?
-				if w.Size() > 0 {
+				if w.Buffered() > 0 {
 					if d := c.server.WriteTimeout; d != 0 {
 						c.rwc.SetWriteDeadline(time.Now().Add(d))
 					}
 
-					if err := c.bufw.Flush(); err != nil {
+					if err := w.Flush(); err != nil {
 						panic(err)
 					}
 				}
 
 				// if the writer require close, then return and close the conn
-				if w.Close() {
+				if !w.KeepAlive() {
 					return
 				}
 			}
@@ -708,37 +706,6 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 		Data: msg.GetValue(),
 	}
 	return
-}
-
-type MessageWriter interface {
-	WriteMessage(message proto.Message) error
-
-	// if the server should close the conn after flush the writer
-	SetClose(b bool)
-	Close() bool
-}
-
-type ResponseWriter struct {
-	Writer *bufio.Writer
-	// if "Close" set to true by someone,
-	// then server will close this conn
-	close bool
-}
-
-func (rw *ResponseWriter) WriteMessage(msg proto.Message) error {
-	return WriteFrame(rw.Writer, msg)
-}
-
-func (rw *ResponseWriter) Close() bool {
-	return rw.close
-}
-
-func (rw *ResponseWriter) SetClose(b bool) {
-	rw.close = b
-}
-
-func (rw *ResponseWriter) Size() int {
-	return rw.Writer.Size()
 }
 
 // frame header bytes pool.

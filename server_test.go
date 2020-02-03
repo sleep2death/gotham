@@ -105,19 +105,19 @@ func TestServe(t *testing.T) {
 type tHandler struct {
 }
 
-func (rr *tHandler) ServeProto(w MessageWriter, req *Request) {
+func (rr *tHandler) ServeProto(w ResponseWriter, req *Request) {
 	switch req.URL {
 	case "/pb/Ping":
 		var msg pb.Ping
 		msg.Message = "Pong"
-		w.WriteMessage(&msg)
+		w.Write(&msg)
 	case "/pb/Error":
 		var msg pb.Error
 		msg.Code = 400
 		msg.Message = "Pong Error"
 
-		w.WriteMessage(&msg)
-		w.SetClose(true)
+		w.Write(&msg)
+		w.(*responseWriter).keepAlive = false
 	default:
 		log.Println("no url handler found")
 	}

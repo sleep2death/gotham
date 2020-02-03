@@ -23,7 +23,7 @@ type Context struct {
 	// Errors is a list of Errors attached to all the handlers/middlewares who used this context.
 	Errors []error
 
-	Writer  MessageWriter
+	Writer  ResponseWriter
 	Request *Request
 }
 
@@ -246,15 +246,11 @@ var (
 
 // Write message to connection
 func (c *Context) WriteMessage(msg proto.Message) error {
-	return c.Writer.WriteMessage(msg)
+	return c.Writer.Write(msg)
 }
 
-func (c *Context) WriteError(code int, message string, close bool) error {
-	c.Writer.SetClose(close)
-	return c.Writer.WriteMessage(&pb.Error{Code: uint32(code), Message: message})
-}
-
-//  close connection after write
-func (c *Context) Close() {
-	c.Writer.SetClose(true)
+func (c *Context) WriteError(code int, message string) error {
+	// c.Writer.SetClose(close)
+	c.Writer.SetStatus(code)
+	return c.Writer.Write(&pb.Error{Code: uint32(code), Message: message})
 }

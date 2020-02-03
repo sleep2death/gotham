@@ -17,7 +17,7 @@ func TestContextReset(t *testing.T) {
 	assert.Equal(t, c.router, router)
 
 	c.index = 2
-	c.Writer = &ResponseWriter{}
+	c.Writer = &responseWriter{}
 	c.Error(errors.New("test")) // nolint: errcheck
 	c.Set("foo", "bar")
 	c.reset()
@@ -30,7 +30,7 @@ func TestContextReset(t *testing.T) {
 }
 
 // CreateTestContext returns a fresh engine and context for testing purposes
-func CreateTestContext(w MessageWriter) (c *Context, r *Router) {
+func CreateTestContext(w ResponseWriter) (c *Context, r *Router) {
 	r = New()
 	c = r.allocateContext()
 	c.reset()
@@ -39,7 +39,7 @@ func CreateTestContext(w MessageWriter) (c *Context, r *Router) {
 }
 
 func TestContextHandlers(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("foo", "bar")
 	value, err := c.Get("foo")
 	assert.Equal(t, "bar", value)
@@ -54,7 +54,7 @@ func TestContextHandlers(t *testing.T) {
 }
 
 func TestContextSetGetValues(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("string", "this is a string")
 	c.Set("int32", int32(-42))
 	c.Set("int64", int64(42424242424242))
@@ -75,56 +75,56 @@ func TestContextSetGetValues(t *testing.T) {
 }
 
 func TestContextGetString(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("string", "this is a string")
 	assert.Equal(t, "this is a string", c.GetString("string"))
 }
 
 func TestContextSetGetBool(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("bool", true)
 	assert.True(t, c.GetBool("bool"))
 }
 
 func TestContextGetInt(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("int", 1)
 	assert.Equal(t, 1, c.GetInt("int"))
 }
 
 func TestContextGetInt64(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("int64", int64(42424242424242))
 	assert.Equal(t, int64(42424242424242), c.GetInt64("int64"))
 }
 
 func TestContextGetFloat64(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("float64", 4.2)
 	assert.Equal(t, 4.2, c.GetFloat64("float64"))
 }
 
 func TestContextGetTime(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	t1, _ := time.Parse("1/2/2006 15:04:05", "01/01/2017 12:00:00")
 	c.Set("time", t1)
 	assert.Equal(t, t1, c.GetTime("time"))
 }
 
 func TestContextGetDuration(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("duration", time.Second)
 	assert.Equal(t, time.Second, c.GetDuration("duration"))
 }
 
 func TestContextGetStringSlice(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.Set("slice", []string{"foo"})
 	assert.Equal(t, []string{"foo"}, c.GetStringSlice("slice"))
 }
 
 func TestContextGetStringMap(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	var m = make(map[string]interface{})
 	m["foo"] = 1
 	c.Set("map", m)
@@ -134,7 +134,7 @@ func TestContextGetStringMap(t *testing.T) {
 }
 
 func TestContextGetStringMapString(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	var m = make(map[string]string)
 	m["foo"] = "bar"
 	c.Set("map", m)
@@ -144,7 +144,7 @@ func TestContextGetStringMapString(t *testing.T) {
 }
 
 func TestContextGetStringMapStringSlice(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	var m = make(map[string][]string)
 	m["foo"] = []string{"foo"}
 	c.Set("map", m)
@@ -154,7 +154,7 @@ func TestContextGetStringMapStringSlice(t *testing.T) {
 }
 
 func TestContextHandlerName(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.handlers = HandlersChain{func(c *Context) {}, handlerNameTest}
 
 	assert.Regexp(t, "^(.*/vendor/)?github.com/sleep2death/gotham.handlerNameTest$", c.HandlerName())
@@ -167,14 +167,14 @@ func handlerNameTest2(c *Context) {}
 var handlerTest HandlerFunc = func(c *Context) {}
 
 func TestContextHandler(t *testing.T) {
-	c, _ := CreateTestContext(&recorder{})
+	c, _ := CreateTestContext(&respRecorder{})
 	c.handlers = HandlersChain{func(c *Context) {}, handlerTest}
 
 	assert.Equal(t, reflect.ValueOf(handlerTest).Pointer(), reflect.ValueOf(c.Handler()).Pointer())
 }
 
 func TestContextWriteMessage(t *testing.T) {
-	w := &recorder{}
+	w := &respRecorder{}
 	c, _ := CreateTestContext(w)
 	c.WriteMessage(&pb.Ping{Message: "Hello"})
 
@@ -182,9 +182,9 @@ func TestContextWriteMessage(t *testing.T) {
 }
 
 func TestContextWriteError(t *testing.T) {
-	w := &recorder{}
+	w := &respRecorder{}
 	c, _ := CreateTestContext(w)
-	c.WriteError(http.StatusBadRequest, "bad request", true)
+	c.WriteError(http.StatusBadRequest, "bad request")
 
 	assert.Equal(t, "bad request", w.Message.(*pb.Error).GetMessage())
 	assert.Equal(t, uint32(http.StatusBadRequest), w.Message.(*pb.Error).GetCode())

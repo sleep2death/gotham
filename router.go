@@ -73,7 +73,7 @@ func Default() *Router {
 }
 
 func DefaultNoRouteHandler(c *Context) {
-	c.WriteError(http.StatusNotFound, "route not found", true)
+	c.WriteError(http.StatusNotFound, "route not found")
 }
 
 func (router *Router) allocateContext() *Context {
@@ -147,7 +147,7 @@ func (router *Router) HandleContext(c *Context) {
 }
 
 // Serve conforms to the Handler interface.
-func (r *Router) ServeProto(w MessageWriter, req *Request) {
+func (r *Router) ServeProto(w ResponseWriter, req *Request) {
 	// get context from pool
 	c := r.pool.Get().(*Context)
 	// reset context
