@@ -60,11 +60,6 @@ func (c *Context) Handler() HandlerFunc {
 	return c.handlers.Last()
 }
 
-// FullPath returns a matched route full path. For not found routes
-// returns an empty string.
-//     router.GET("/user/:id", func(c *gin.Context) {
-//         c.FullPath() == "/user/:id" // true
-//     })
 func (c *Context) FullPath() string {
 	return c.fullPath
 }
@@ -106,6 +101,11 @@ func (c *Context) IsAborted() bool {
 // for this request are not called.
 func (c *Context) Abort() {
 	c.index = abortIndex
+}
+
+func (c *Context) AbortWithStatus(code int) {
+	c.Abort()
+	c.WriteError(code, "Connection has aborted by server.")
 }
 
 /************************************/

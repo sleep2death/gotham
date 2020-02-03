@@ -7,14 +7,15 @@
 A well-tested/high-performace tcp router written by go, with protbuf supported, highly inspired by this [post](https://sahilm.com/tcp-servers-that-run-like-clockwork/), and the source of standard http library:[net/http/server.go](https://github.com/golang/go/blob/master/src/net/http/server.go).
 
 ## content
-- [Installation](#installation)
-- [Quick start](#quick-start)
+
+-   [Installation](#installation)
+-   [Quick start](#quick-start)
 
 ## Installation
 
 To install gotham package, you need to install Go and set your Go workspace first.
 
-1. The first need [Go](https://golang.org/) installed (**version 1.11+ is required**), then you can use the below Go command to install Gin.
+1. The first need [Go](https://golang.org/) installed (**version 1.11+ is required**), then you can use the below Go command to install Gotham.
 
 ```sh
 $ go get -u github.com/sleep2death/gotham

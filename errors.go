@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ErrorType is an unsigned 64-bit error code as defined in the gin spec.
+// ErrorType is an unsigned 64-bit error code as defined in the gotham spec.
 type ErrorType uint64
 
 const (
@@ -51,7 +51,7 @@ func (msg *Error) IsType(flags ErrorType) bool {
 }
 
 // ByType returns a readonly copy filtered the byte.
-// ie ByType(gin.ErrorTypePublic) returns a slice of errors with type=ErrorTypePublic.
+// ie ByType(gotham.ErrorTypePublic) returns a slice of errors with type=ErrorTypePublic.
 func (a errorMsgs) ByType(typ ErrorType) errorMsgs {
 	if len(a) == 0 {
 		return nil

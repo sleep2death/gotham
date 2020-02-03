@@ -33,11 +33,11 @@ var consoleColorMode = autoColor
 
 // LoggerConfig defines the config for Logger middleware.
 type LoggerConfig struct {
-	// Optional. Default value is gin.defaultLogFormatter
+	// Optional. Default value is gotham.defaultLogFormatter
 	Formatter LogFormatter
 
 	// Output is a writer where logs are written.
-	// Optional. Default value is gin.DefaultWriter.
+	// Optional. Default value is gotham.DefaultWriter.
 	Output io.Writer
 
 	// SkipPaths is a url path array which logs are not written.
@@ -148,8 +148,8 @@ func ForceConsoleColor() {
 // }
 // }
 
-// Logger instances a Logger middleware that will write the logs to gin.DefaultWriter.
-// By default gin.DefaultWriter = os.Stdout.
+// Logger instances a Logger middleware that will write the logs to gotham.DefaultWriter.
+// By default gotham.DefaultWriter = os.Stdout.
 func Logger() HandlerFunc {
 	return LoggerWithConfig(LoggerConfig{})
 }
