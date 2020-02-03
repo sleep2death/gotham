@@ -21,7 +21,7 @@ type Context struct {
 	Keys map[string]interface{}
 
 	// Errors is a list of Errors attached to all the handlers/middlewares who used this context.
-	Errors []error
+	Errors errorMsgs
 
 	Writer  ResponseWriter
 	Request *Request
@@ -73,6 +73,13 @@ func (c *Context) Data() []byte {
 	return c.Request.Data
 }
 
+func (c *Context) ClientIP() string {
+	if c.Request.Conn != nil {
+		return c.Request.Conn.remoteAddr
+	}
+	return "0.0.0.0"
+}
+
 /************************************/
 /*********** FLOW CONTROL ***********/
 /************************************/
@@ -110,12 +117,21 @@ func (c *Context) Abort() {
 // A middleware can be used to collect all the errors and push them to a database together,
 // print a log, or append it in the HTTP response.
 // Error will panic if err is nil.
-func (c *Context) Error(err error) {
+func (c *Context) Error(err error) *Error {
 	if err == nil {
 		panic("err is nil")
 	}
 
-	c.Errors = append(c.Errors, err)
+	parsedError, ok := err.(*Error)
+	if !ok {
+		parsedError = &Error{
+			Err:  err,
+			Type: ErrorTypePrivate,
+		}
+	}
+
+	c.Errors = append(c.Errors, parsedError)
+	return parsedError
 }
 
 /************************************/

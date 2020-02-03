@@ -132,21 +132,21 @@ func ForceConsoleColor() {
 }
 
 // ErrorLogger returns a handlerfunc for any error type.
-func ErrorLogger() HandlerFunc {
-	return ErrorLoggerT(ErrorTypeAny)
-}
+// func ErrorLogger() HandlerFunc {
+// return ErrorLoggerT(ErrorTypeAny)
+// }
 
-// ErrorLoggerT returns a handlerfunc for a given error type.
-func ErrorLoggerT(typ ErrorType) HandlerFunc {
-	return func(c *Context) {
-		c.Next()
-		// errors := c.Errors.ByType(typ)
-		// if len(errors) > 0 {
-		// // TODO: error log handler
-		// c.JSON(-1, errors)
-		// }
-	}
-}
+// // ErrorLoggerT returns a handlerfunc for a given error type.
+// func ErrorLoggerT(typ ErrorType) HandlerFunc {
+// return func(c *Context) {
+// c.Next()
+// errors := c.Errors.ByType(typ)
+// if len(errors) > 0 {
+// // TODO: error log handler
+// c.JSON(-1, errors)
+// }
+// }
+// }
 
 // Logger instances a Logger middleware that will write the logs to gin.DefaultWriter.
 // By default gin.DefaultWriter = os.Stdout.
@@ -170,7 +170,7 @@ func LoggerWithWriter(out io.Writer, notlogged ...string) HandlerFunc {
 	})
 }
 
-var DefaultWriter = os.Stdout
+var DefaultWriter io.Writer = os.Stdout
 
 // LoggerWithConfig instance a Logger middleware with config.
 func LoggerWithConfig(conf LoggerConfig) HandlerFunc {
@@ -223,12 +223,11 @@ func LoggerWithConfig(conf LoggerConfig) HandlerFunc {
 			param.TimeStamp = time.Now()
 			param.Latency = param.TimeStamp.Sub(start)
 
-			// param.ClientIP = c.ClientIP()
-			// param.StatusCode = c.Writer.Status()
-			// param.ErrorMessage = c.Errors.ByType(ErrorTypePrivate).String()
+			param.ClientIP = c.ClientIP()
+			param.StatusCode = c.Writer.Status()
+			param.ErrorMessage = c.Errors.ByType(ErrorTypePrivate).String()
 
-			// param.MessageSize = c.Writer.Size()
-
+			param.MessageSize = c.Writer.Buffered()
 			param.Path = path
 
 			fmt.Fprint(out, formatter(param))

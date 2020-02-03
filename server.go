@@ -377,9 +377,10 @@ const (
 
 // Request wrap the connection and other userful information of the client's request
 type Request struct {
-	Conn *conn
-	URL  string
-	Data []byte
+	Conn       *conn
+	URL        string
+	Data       []byte
+	RemoteAddr string
 }
 
 type conn struct {
