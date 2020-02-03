@@ -105,7 +105,7 @@ func (c *Context) Abort() {
 
 func (c *Context) AbortWithStatus(code int) {
 	c.Abort()
-	c.WriteError(code, "Connection has aborted by server.")
+	c.WriteError(code, "Response has been aborted by server.")
 }
 
 /************************************/

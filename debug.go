@@ -2,7 +2,6 @@ package gotham
 
 import (
 	"fmt"
-	"html/template"
 	"runtime"
 	"strconv"
 	"strings"
@@ -32,18 +31,6 @@ func debugPrintRoute(absolutePath string, handlers HandlersChain) {
 		} else {
 			DebugPrintRouteFunc(absolutePath, handlerName, nuHandlers)
 		}
-	}
-}
-
-func debugPrintLoadTemplate(tmpl *template.Template) {
-	if IsDebugging() {
-		var buf strings.Builder
-		for _, tmpl := range tmpl.Templates() {
-			buf.WriteString("\t- ")
-			buf.WriteString(tmpl.Name())
-			buf.WriteString("\n")
-		}
-		debugPrint("Loaded HTML Templates (%d): \n%s\n", len(tmpl.Templates()), buf.String())
 	}
 }
 
@@ -78,14 +65,6 @@ func debugPrintWARNINGNew() {
 	debugPrint(`[WARNING] Running in "debug" mode. Switch to "release" mode in production.
 - using env:	export GOTHAM_MODE=release
  - using code:	gotham.SetMode(gotham.ReleaseMode)
-`)
-}
-
-func debugPrintWARNINGSetHTMLTemplate() {
-	debugPrint(`[WARNING] Since SetHTMLTemplate() is NOT thread-safe. It should only be called
-at initialization. ie. before any route is registered or the router is listening in a socket:
-	router := gotham.Default()
-	router.SetHTMLTemplate(template) // << good place
 `)
 }
 

@@ -10,10 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func performRequest(url string, r *Router) {
+func performRequest(url string, r *Router) *respRecorder {
 	b := new(bytes.Buffer)
-	rr := NewResponseWriter(b)
+	rr := &respRecorder{}
+	rr.writer = b
+	rr.status = http.StatusOK
 	r.ServeProto(rr, &Request{URL: url})
+	return rr
 }
 
 func TestLogger(t *testing.T) {

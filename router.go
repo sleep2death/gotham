@@ -48,6 +48,7 @@ var _ IRouter = &Router{}
 
 // New returns a new blank Router instance without any middleware attached.
 func New() *Router {
+	debugPrintWARNINGDefault()
 	router := &Router{
 		RouterGroup: RouterGroup{
 			Handlers: nil,
@@ -65,10 +66,10 @@ func New() *Router {
 
 // Default returns a Router instance with the Logger and Recovery middleware already attached.
 func Default() *Router {
-	// debugPrintWARNINGDefault()
+	debugPrintWARNINGDefault()
 	router := New()
+	router.Use(Logger(), Recovery())
 	router.NoRoute(DefaultNoRouteHandler)
-	// engine.Use(Logger(), Recovery())
 	return router
 }
 
@@ -103,7 +104,7 @@ func (router *Router) addRoute(path string, handlers HandlersChain) {
 	assert1(path[0] == '/', "path must begin with '/'")
 	assert1(len(handlers) > 0, "there must be at least one handler")
 
-	// debugPrintRoute(method, path, handlers)
+	debugPrintRoute(path, handlers)
 	router.root.addRoute(path, handlers)
 }
 
@@ -132,6 +133,8 @@ func iterate(path string, routes RoutesInfo, root *node) RoutesInfo {
 }
 
 func (r *Router) Run(addr string) (err error) {
+	debugPrint("Listening and serving HTTPS on %s\n", addr)
+	defer func() { debugPrintError(err) }()
 	err = ListenAndServe(addr, r)
 	return
 }
