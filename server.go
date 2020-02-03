@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -709,59 +708,6 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 		Data: msg.GetValue(),
 	}
 	return
-}
-
-// WriteFrame with given url
-func WriteFrame(w io.Writer, pb proto.Message) error {
-	// marshal the payload pb
-	buf, err := proto.Marshal(pb)
-	if err != nil {
-		return err
-	}
-
-	// transfer dot to slash
-	url := "/" + strings.Replace(proto.MessageName(pb), ".", "/", -1)
-	// wrap it to any pb
-	any := &types.Any{
-		TypeUrl: url,
-		Value:   buf,
-	}
-	// marshal the any pb
-	buf, err = any.Marshal()
-	if err != nil {
-		return err
-	}
-	// write the frame head
-	return WriteData(w, buf)
-}
-
-// WriteData with the payload.
-func WriteData(w io.Writer, data []byte) (err error) {
-	var flags Flags
-	// flags |= FlagDataEndStream
-	flags |= FlagFrameAck
-
-	length := len(data)
-	if length >= (1 << 24) {
-		return ErrFrameTooLarge
-	}
-
-	header := [frameHeaderLen]byte{
-		byte(length >> 16),
-		byte(length >> 8),
-		byte(length),
-		byte(FrameData),
-		byte(flags),
-	}
-	wbuf := append(header[:frameHeaderLen], data...)
-
-	n, err := w.Write(wbuf)
-
-	if err == nil && n != len(wbuf) {
-		err = io.ErrShortWrite
-	}
-
-	return err
 }
 
 type MessageWriter interface {

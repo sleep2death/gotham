@@ -37,11 +37,6 @@ type RoutesInfo []RouteInfo
 // Router of the gamerouter
 type Router struct {
 	RouterGroup
-	MaxMultipartMemory int64
-
-	// RemoveExtraSlash a parameter can be parsed from the URL even with extra slashes.
-	// See the PR #1817 and issue #1644
-	RemoveExtraSlash bool
 
 	allNoRoute HandlersChain
 	noRoute    HandlersChain
@@ -59,9 +54,7 @@ func New() *Router {
 			basePath: "/",
 			root:     true,
 		},
-		RemoveExtraSlash:   true,
-		MaxMultipartMemory: defaultMultipartMemory,
-		root:               new(node),
+		root: new(node),
 	}
 	router.RouterGroup.engine = router
 	router.pool.New = func() interface{} {
