@@ -35,7 +35,7 @@ func TestRouterGroupBasicHandle(t *testing.T) {
 	assert.Equal(t, "/v1/login/", login.BasePath())
 
 	handler := func(c *Context) {
-		c.WriteMessage(&pb.Error{Code: 400, Message: fmt.Sprintf("index %d", c.index)})
+		c.Write(&pb.Error{Code: 400, Message: fmt.Sprintf("index %d", c.index)})
 		c.Writer.(*respRecorder).keepAlive = false
 	}
 	v1.Handle("/test", handler)

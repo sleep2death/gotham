@@ -176,7 +176,7 @@ func TestContextHandler(t *testing.T) {
 func TestContextWriteMessage(t *testing.T) {
 	w := &respRecorder{}
 	c, _ := CreateTestContext(w)
-	c.WriteMessage(&pb.Ping{Message: "Hello"})
+	c.Write(&pb.Ping{Message: "Hello"})
 
 	assert.Equal(t, "Hello", w.Message.(*pb.Ping).GetMessage())
 }

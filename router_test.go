@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+
 	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
@@ -124,7 +125,7 @@ func TestEngineHandleContext(t *testing.T) {
 	})
 	v2 := r.Group("/v2")
 	v2.Handle("/redirect", func(c *Context) {
-		c.WriteMessage(&pb.Ping{Message: "redirect"})
+		c.Write(&pb.Ping{Message: "redirect"})
 	})
 
 	assert.NotPanics(t, func() {
@@ -151,7 +152,7 @@ func TestRouterServe(t *testing.T) {
 		var msg pb.Ping
 		proto.Unmarshal(ctx.Data(), &msg)
 		msg.Message = "Pong"
-		ctx.WriteMessage(&msg)
+		ctx.Write(&msg)
 		// log.Printf("ping message: %s", msg.GetMessage())
 	})
 

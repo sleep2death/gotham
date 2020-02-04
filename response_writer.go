@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 const (
@@ -115,12 +115,12 @@ func WriteFrame(w io.Writer, message proto.Message) error {
 	// transfer dot to slash
 	url := "/" + strings.Replace(proto.MessageName(message), ".", "/", -1)
 	// wrap it to any pb
-	any := &types.Any{
+	anyMsg := &any.Any{
 		TypeUrl: url,
 		Value:   buf,
 	}
 	// marshal the any pb
-	buf, err = any.Marshal()
+	buf, err = proto.Marshal(anyMsg)
 	if err != nil {
 		return err
 	}

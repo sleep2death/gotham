@@ -79,7 +79,7 @@ func TestDebugPrintWARNINGNew(t *testing.T) {
 		debugPrintWARNINGNew()
 		SetMode(TestMode)
 	})
-	assert.Equal(t, "[GOTHAM-debug] [WARNING] Running in \"debug\" mode. Switch to \"release\" mode in production.\n- using env:\texport GOTHAM_MODE=release\n - using code:\tgotham.SetMode(gotham.ReleaseMode)\n", re)
+	assert.Equal(t, "[GOTHAM-debug] [WARNING] Running in \"debug\" mode. Switch to \"release\" mode in production.\n- using env:\texport GOTHAM_MODE=release\n- using code:\tgotham.SetMode(gotham.ReleaseMode)\n", re)
 }
 
 func captureOutput(t *testing.T, f func()) string {
