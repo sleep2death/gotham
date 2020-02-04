@@ -64,7 +64,7 @@ func debugPrintWARNINGDefault() {
 func debugPrintWARNINGNew() {
 	debugPrint(`[WARNING] Running in "debug" mode. Switch to "release" mode in production.
 - using env:	export GOTHAM_MODE=release
- - using code:	gotham.SetMode(gotham.ReleaseMode)
+- using code:	gotham.SetMode(gotham.ReleaseMode)
 `)
 }
 

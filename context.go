@@ -105,7 +105,7 @@ func (c *Context) Abort() {
 
 func (c *Context) AbortWithStatus(code int) {
 	c.Abort()
-	c.WriteError(code, "Response has been aborted by server.")
+	c.WriteError(code, "Request has been aborted by server.")
 }
 
 /************************************/
@@ -261,7 +261,7 @@ var (
 )
 
 // Write message to connection
-func (c *Context) WriteMessage(msg proto.Message) error {
+func (c *Context) Write(msg proto.Message) error {
 	return c.Writer.Write(msg)
 }
 

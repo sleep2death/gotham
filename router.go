@@ -48,7 +48,7 @@ var _ IRouter = &Router{}
 
 // New returns a new blank Router instance without any middleware attached.
 func New() *Router {
-	debugPrintWARNINGDefault()
+	debugPrintWARNINGNew()
 	router := &Router{
 		RouterGroup: RouterGroup{
 			Handlers: nil,
