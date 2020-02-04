@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 // ErrServerClosed is returned by the Server's Serve,
@@ -695,7 +695,7 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	}
 
 	// read frame body
-	var msg types.Any
+	var msg any.Any
 	err = proto.Unmarshal(fb, &msg)
 
 	if err != nil {

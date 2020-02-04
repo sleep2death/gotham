@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
@@ -151,7 +151,7 @@ func TestReadWriteData(t *testing.T) {
 	}
 	content, _ := proto.Marshal(ping)
 
-	any := &types.Any{
+	any := &any.Any{
 		TypeUrl: "/pb/Ping",
 		Value:   content,
 	}
