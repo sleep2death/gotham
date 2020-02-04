@@ -185,7 +185,7 @@ func TestRouterServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "/pb/Ping", req.URL)
+	assert.Equal(t, "pb.Ping", req.URL)
 	resp := &pb.Ping{}
 	err = proto.Unmarshal(req.Data, resp)
 	assert.Equal(t, "Pong", resp.GetMessage())

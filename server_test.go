@@ -3,7 +3,6 @@ package gotham
 import (
 	"bufio"
 	io "io"
-	"log"
 	"net"
 	"testing"
 	"time"
@@ -107,11 +106,11 @@ type tHandler struct {
 
 func (rr *tHandler) ServeProto(w ResponseWriter, req *Request) {
 	switch req.URL {
-	case "/pb/Ping":
+	case "pb.Ping":
 		var msg pb.Ping
 		msg.Message = "Pong"
 		w.Write(&msg)
-	case "/pb/Error":
+	case "pb.Error":
 		var msg pb.Error
 		msg.Code = 400
 		msg.Message = "Pong Error"
@@ -119,7 +118,8 @@ func (rr *tHandler) ServeProto(w ResponseWriter, req *Request) {
 		w.Write(&msg)
 		w.(*responseWriter).keepAlive = false
 	default:
-		log.Println("no url handler found")
+		// log.Println("no url handler found")
+		panic("no url handler found")
 	}
 }
 
@@ -152,7 +152,7 @@ func TestReadWriteData(t *testing.T) {
 	content, _ := proto.Marshal(ping)
 
 	any := &any.Any{
-		TypeUrl: "/pb/Ping",
+		TypeUrl: "pb.Ping",
 		Value:   content,
 	}
 

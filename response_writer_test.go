@@ -25,7 +25,7 @@ func TestResponseWriterWrite(t *testing.T) {
 	rw := NewResponseWriter(bufio.NewWriter(&b))
 
 	err := rw.Write(&pb.Ping{Message: "hola"})
-	assert.Equal(t, 23, rw.Buffered())
+	assert.Equal(t, 22, rw.Buffered())
 	assert.Equal(t, http.StatusOK, rw.Status())
 	// assert.Equal(t, "hola", testWriter.Body.String())
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestResponseWriterFlush(t *testing.T) {
 		Message: "hola",
 	}
 	rw.Write(msg)
-	assert.Equal(t, 23, rw.Buffered())
+	assert.Equal(t, 22, rw.Buffered())
 	err = w.Flush()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, rw.Buffered())

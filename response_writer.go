@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
@@ -113,7 +112,7 @@ func WriteFrame(w io.Writer, message proto.Message) error {
 	}
 
 	// transfer dot to slash
-	url := "/" + strings.Replace(proto.MessageName(message), ".", "/", -1)
+	url := proto.MessageName(message)
 	// wrap it to any pb
 	anyMsg := &any.Any{
 		TypeUrl: url,

@@ -32,3 +32,29 @@ func TestJoinPaths(t *testing.T) {
 	assert.Equal(t, "/a/hola/", joinPaths("/a/", "/hola/"))
 	assert.Equal(t, "/a/hola/", joinPaths("/a/", "/hola//"))
 }
+
+func TestClearPath(t *testing.T) {
+	path := "/abc/def.a"
+	_, err := fixPath(path)
+	assert.Equal(t, ErrHybridPath, err)
+
+	path = "abc/hello"
+	res, err := fixPath(path)
+	assert.Equal(t, "/abc/hello", res)
+
+	path = "abc/hello/"
+	res, err = fixPath(path)
+	assert.Equal(t, "/abc/hello", res)
+
+	path = "abc-hello"
+	res, err = fixPath(path)
+	assert.Equal(t, "/abc-hello", res)
+
+	path = "gotham.hello.world"
+	res, err = fixPath(path)
+	assert.Equal(t, "/gotham/hello/world", res)
+
+	path = "gotham.hello.world."
+	res, err = fixPath(path)
+	assert.Equal(t, "/gotham/hello/world", res)
+}
