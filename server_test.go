@@ -123,16 +123,6 @@ func (rr *tHandler) ServeProto(w ResponseWriter, req *Request) {
 	}
 }
 
-// ... for test only
-func readFrame(r io.Reader) (*Request, error) {
-	fh, err := ReadFrameHeader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return ReadFrameBody(r, fh)
-}
-
 func TestReadWriteData(t *testing.T) {
 	addr := ":9000"
 	server := &Server{Addr: addr, Handler: &tHandler{}}

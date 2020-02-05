@@ -1,0 +1,9 @@
+syntax ="proto3";
+package pb;
+
+import "google/protobuf/timestamp.proto";
+
+message EchoMessage {
+    string message = 1;
+    google.protobuf.Timestamp ts = 2;
+}

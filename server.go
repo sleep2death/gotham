@@ -709,6 +709,16 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	return
 }
 
+// ... for test only
+func ReadFrame(r io.Reader) (*Request, error) {
+	fh, err := ReadFrameHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadFrameBody(r, fh)
+}
+
 // frame header bytes pool.
 // Used only by ReadFrameHeader.
 var fhBytes = sync.Pool{
