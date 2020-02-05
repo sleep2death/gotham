@@ -29,7 +29,7 @@ import "github.com/sleep2death/gotham"
 
 ## Quick start
 
-All examples you can find is in `/examples` folder.
+All examples you can find are in `/examples` folder.
 
 ```go
 package main
