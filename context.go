@@ -35,6 +35,7 @@ func (c *Context) reset() {
 	c.handlers = nil
 	c.index = -1
 	c.fullPath = ""
+
 	c.Keys = nil
 	c.Errors = c.Errors[0:0]
 }

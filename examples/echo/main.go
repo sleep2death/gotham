@@ -81,7 +81,6 @@ func main() {
 				log.Printf("Ping response of (%d) received.", idx)
 			}
 		}(i)
-		// time.Sleep(time.Millisecond * 5)
 	}
 	wg.Wait()
 }
