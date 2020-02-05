@@ -2,7 +2,6 @@ package gotham
 
 import (
 	"bufio"
-	io "io"
 	"net"
 	"testing"
 	"time"
@@ -160,11 +159,11 @@ func TestReadWriteData(t *testing.T) {
 	time.Sleep(time.Millisecond * 5)
 	var pong pb.Ping
 	// read one
-	res, err := readFrame(r)
+	res, err := ReadFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// read two
-	res, err = readFrame(r)
+	res, err = ReadFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 
@@ -194,7 +193,7 @@ func TestReadWriteData(t *testing.T) {
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)
-	res, err = readFrame(r)
+	res, err = ReadFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// test incomplete body
@@ -208,7 +207,7 @@ func TestReadWriteData(t *testing.T) {
 	w.Write(wbuf)
 	w.Flush()
 	time.Sleep(time.Millisecond * 5)
-	res, err = readFrame(r)
+	res, err = ReadFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
@@ -234,7 +233,7 @@ func TestWriteFrame(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 5)
 	var pong pb.Ping
-	res, _ := readFrame(r)
+	res, _ := ReadFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 
@@ -247,7 +246,7 @@ func TestWriteFrame(t *testing.T) {
 	WriteFrame(w, &pb.Ping{Message: "Ping"})
 	w.Flush()
 
-	res, _ = readFrame(r)
+	res, _ = ReadFrame(r)
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
@@ -279,7 +278,7 @@ func TestErrorFrame(t *testing.T) {
 
 	// still get the error response
 	var msg pb.Error
-	res, _ := readFrame(r)
+	res, _ := ReadFrame(r)
 	proto.Unmarshal(res.Data, &msg)
 	assert.Equal(t, "Pong Error", msg.GetMessage())
 
