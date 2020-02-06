@@ -41,23 +41,26 @@ type Router struct {
 	allNoRoute HandlersChain
 	noRoute    HandlersChain
 	pool       sync.Pool
-	root       *node
+
+	nodes  pnodes
+	groups []*RouterGroup
 }
 
-var _ IRouter = &Router{}
+// var _ IRouter = &Router{}
 
 // New returns a new blank Router instance without any middleware attached.
 func New() *Router {
 	debugPrintWARNINGNew()
 	router := &Router{
 		RouterGroup: RouterGroup{
-			Handlers: nil,
-			basePath: "/",
-			root:     true,
+			handlers: nil,
+			name:     "default",
+			// basePath: "/",
+			root: true,
 		},
-		root: new(node),
+		nodes: make(pnodes, 0),
 	}
-	router.RouterGroup.engine = router
+	router.RouterGroup.router = router
 	router.pool.New = func() interface{} {
 		return router.allocateContext()
 	}
@@ -96,8 +99,22 @@ func (router *Router) Use(middleware ...HandlerFunc) IRoutes {
 	return router
 }
 
+func (router *Router) Group(name string) *RouterGroup {
+	for _, g := range router.groups {
+		if g.name == name {
+			return g
+		}
+	}
+	g := &RouterGroup{name: name, router: router}
+	return g
+}
+
 func (router *Router) rebuild404Handlers() {
-	router.allNoRoute = router.combineHandlers(router.noRoute)
+	finalSize := len(router.handlers) + len(router.noRoute)
+	if finalSize >= int(abortIndex) {
+		panic("too many handlers")
+	}
+	router.allNoRoute = append(router.handlers, router.noRoute...)
 }
 
 func (router *Router) addRoute(path string, handlers HandlersChain) {
@@ -105,29 +122,25 @@ func (router *Router) addRoute(path string, handlers HandlersChain) {
 	assert1(len(handlers) > 0, "there must be at least one handler")
 
 	debugPrintRoute(path, handlers)
-	router.root.addRoute(path, handlers)
+	// router.root.addRoute(path, handlers)
 }
 
 // Routes returns a slice of registered routes, including some useful information, such as:
 // the http method, path and the handler name.
 func (router *Router) Routes() (routes RoutesInfo) {
-	tree := router.root
-	routes = iterate("", routes, tree)
+	// tree := router.root
+	routes = iterate(routes, router.nodes)
 	return routes
 }
 
-func iterate(path string, routes RoutesInfo, root *node) RoutesInfo {
-	path += root.path
-	if len(root.handlers) > 0 {
-		handlerFunc := root.handlers.Last()
+func iterate(routes RoutesInfo, nodes pnodes) RoutesInfo {
+	for _, node := range nodes {
+		handlerFunc := node.handlers.Last()
 		routes = append(routes, RouteInfo{
-			Path:        path,
+			Path:        node.name,
 			Handler:     nameOfFunction(handlerFunc),
 			HandlerFunc: handlerFunc,
 		})
-	}
-	for _, child := range root.children {
-		routes = iterate(path, routes, child)
 	}
 	return routes
 }
@@ -166,11 +179,11 @@ func (r *Router) ServeProto(w ResponseWriter, req *Request) {
 
 func (router *Router) handleProtoRequest(c *Context) {
 	// Find route in the tree
-	url, _ := fixPath(c.Request.URL)
-	value := router.root.getValue(url, nil, false)
-	if value.handlers != nil {
+	// url, _ := fixPath(c.Request.URL)
+	value := router.nodes.get(c.Request.URL)
+	if value != nil {
 		c.handlers = value.handlers
-		c.fullPath = value.fullPath
+		c.fullPath = value.name
 	} else {
 		// no route was found
 		c.handlers = router.allNoRoute

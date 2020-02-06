@@ -12,21 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddRoute(t *testing.T) {
-	router := New()
-	router.addRoute("/", HandlersChain{func(_ *Context) {}})
-	assert.NotNil(t, router.root)
-
-	assert.Panics(t, func() { router.addRoute("/", HandlersChain{func(_ *Context) {}}) })
-	assert.Panics(t, func() { router.addRoute("a", HandlersChain{func(_ *Context) {}}) })
-	assert.Panics(t, func() { router.addRoute("/", HandlersChain{}) })
-
-	router.addRoute("/post", HandlersChain{func(_ *Context) {}})
-	assert.Panics(t, func() {
-		router.addRoute("/post", HandlersChain{func(_ *Context) {}})
-	})
-}
-
 func TestCreateDefaultRouter(t *testing.T) {
 	router := Default()
 	assert.NotNil(t, router.noRoute)
@@ -39,7 +24,7 @@ func TestNoRouteWithoutGlobalHandlers(t *testing.T) {
 	router := New()
 
 	router.NoRoute(middleware0)
-	assert.Nil(t, router.Handlers)
+	assert.Nil(t, router.handlers)
 	assert.Len(t, router.noRoute, 1)
 	assert.Len(t, router.allNoRoute, 1)
 	compareFunc(t, router.noRoute[0], middleware0)
@@ -56,13 +41,13 @@ func TestNoRouteWithoutGlobalHandlers(t *testing.T) {
 	var middleware2 HandlerFunc = func(c *Context) {}
 	router.Use(middleware2)
 
-	compareFunc(t, router.Handlers[0], middleware2)
+	compareFunc(t, router.handlers[0], middleware2)
 
 	router.Use(middleware1)
-	assert.Len(t, router.Handlers, 2)
+	assert.Len(t, router.handlers, 2)
 
-	compareFunc(t, router.Handlers[0], middleware2)
-	compareFunc(t, router.Handlers[1], middleware1)
+	compareFunc(t, router.handlers[0], middleware2)
+	compareFunc(t, router.handlers[1], middleware1)
 }
 
 func compareFunc(t *testing.T, a, b interface{}) {
@@ -83,12 +68,11 @@ func TestListOfRoutes(t *testing.T) {
 	router.Handle("/", handlerTest1)
 	group := router.Group("/users")
 	{
-		group.Handle("/", handlerTest2)
-		group.Handle("/:id", handlerTest1)
+		group.Handle("/id", handlerTest2)
 	}
 	list := router.Routes()
 
-	assert.Len(t, list, 4)
+	assert.Len(t, list, 3)
 	assertRoutePresent(t, list, RouteInfo{
 		Path:    "/favicon.ico",
 		Handler: "^(.*/vendor/)?github.com/sleep2death/gotham.handlerTest1$",
@@ -98,12 +82,8 @@ func TestListOfRoutes(t *testing.T) {
 		Handler: "^(.*/vendor/)?github.com/sleep2death/gotham.handlerTest1$",
 	})
 	assertRoutePresent(t, list, RouteInfo{
-		Path:    "/users/",
+		Path:    "/id",
 		Handler: "^(.*/vendor/)?github.com/sleep2death/gotham.handlerTest2$",
-	})
-	assertRoutePresent(t, list, RouteInfo{
-		Path:    "/users/:id",
-		Handler: "^(.*/vendor/)?github.com/sleep2death/gotham.handlerTest1$",
 	})
 }
 
@@ -120,7 +100,7 @@ func assertRoutePresent(t *testing.T, gotRoutes RoutesInfo, wantRoute RouteInfo)
 func TestEngineHandleContext(t *testing.T) {
 	r := New()
 	r.Handle("/", func(c *Context) {
-		c.Request.URL = "/v2/redirect"
+		c.Request.URL = "/redirect"
 		r.HandleContext(c)
 	})
 	v2 := r.Group("/v2")
@@ -142,13 +122,13 @@ func TestRouterServe(t *testing.T) {
 	str := "Ping"
 
 	r := New()
-	group := r.Group("/pb")
+	group := r.Group("pb")
 	group.Use(func(ctx *Context) {
 		// log.Printf("[middleware]")
-		assert.Equal(t, "/pb/Ping", ctx.FullPath())
+		assert.Equal(t, "pb.Ping", ctx.FullPath())
 	})
 
-	group.Handle("/Ping", func(ctx *Context) {
+	group.Handle("pb.Ping", func(ctx *Context) {
 		var msg pb.Ping
 		proto.Unmarshal(ctx.Data(), &msg)
 		msg.Message = "Pong"

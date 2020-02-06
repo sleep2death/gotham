@@ -1,90 +1,90 @@
-// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
-// Use of this source code is governed by a MIT style
-// license that can be found in the LICENSE file.
-
 package gotham
 
-// IRouter defines all router handle interface includes single and group router.
-type IRouter interface {
-	IRoutes
-	Group(string, ...HandlerFunc) *RouterGroup
+type IHandlers interface {
+	Handlers() HandlersChain
+	Name() string
 }
 
-// IRoutes defines all router handle interface.
 type IRoutes interface {
-	Use(...HandlerFunc) IRoutes
 	Handle(string, ...HandlerFunc) IRoutes
+	Use(...HandlerFunc) IRoutes
 }
 
-// RouterGroup is used internally to configure router, a RouterGroup is associated with
-// a prefix and an array of handlers (middleware).
 type RouterGroup struct {
-	Handlers HandlersChain
-	basePath string
-	engine   *Router
+	handlers HandlersChain
+	name     string
 	root     bool
+	router   *Router
 }
 
-var _ IRouter = &RouterGroup{}
-
-// Use adds middleware to the group, see example code in GitHub.
-func (group *RouterGroup) Use(middleware ...HandlerFunc) IRoutes {
-	group.Handlers = append(group.Handlers, middleware...)
-	return group.returnObj()
-}
-
-// Group creates a new router group. You should add all the routes that have common middlewares or the same path prefix.
-// For example, all the routes that use a common middleware for authorization could be grouped.
-func (group *RouterGroup) Group(relativePath string, handlers ...HandlerFunc) *RouterGroup {
-	return &RouterGroup{
-		Handlers: group.combineHandlers(handlers),
-		basePath: group.calculateAbsolutePath(relativePath),
-		engine:   group.engine,
+func (group *RouterGroup) Handle(name string, handlers ...HandlerFunc) IRoutes {
+	var pn *pnode = group.router.nodes.get(name)
+	if pn == nil {
+		pn = &pnode{name: name}
+		group.router.nodes = append(group.router.nodes, pn)
 	}
+
+	pn.addGroup(group.router)
+	pn.addGroup(group)
+	pn.rebuildHandlers(handlers...)
+
+	return group
 }
 
-// BasePath returns the base path of router group.
-// For example, if v := router.Group("/rest/n/v1/api"), v.BasePath() is "/rest/n/v1/api".
-func (group *RouterGroup) BasePath() string {
-	return group.basePath
+func (group *RouterGroup) Handlers() HandlersChain {
+	return group.handlers
 }
 
-func (group *RouterGroup) handle(relativePath string, handlers HandlersChain) IRoutes {
-	absolutePath := group.calculateAbsolutePath(relativePath)
-	handlers = group.combineHandlers(handlers)
-	group.engine.addRoute(absolutePath, handlers)
-	return group.returnObj()
+func (group *RouterGroup) Name() string {
+	return group.name
 }
 
-// Handle registers a new request handle and middleware with the given path and method.
-// The last handler should be the real handler, the other ones should be middleware that can and should be shared among different routes.
-// See the example code in GitHub.
-//
-// This function is intended for bulk loading and to allow the usage of less
-// frequently used, non-standardized or custom methods (e.g. for internal
-// communication with a proxy).
-func (group *RouterGroup) Handle(relativePath string, handlers ...HandlerFunc) IRoutes {
-	return group.handle(relativePath, handlers)
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) IRoutes {
+	group.handlers = append(group.handlers, middlewares...)
+	return group
 }
 
-func (group *RouterGroup) combineHandlers(handlers HandlersChain) HandlersChain {
-	finalSize := len(group.Handlers) + len(handlers)
+type pnodes []*pnode
+
+type pnode struct {
+	name     string
+	groups   []IHandlers
+	handlers HandlersChain
+}
+
+func (pn *pnode) combineHandlers(handlers HandlersChain) HandlersChain {
+	finalSize := len(pn.handlers) + len(handlers)
 	if finalSize >= int(abortIndex) {
 		panic("too many handlers")
 	}
 	mergedHandlers := make(HandlersChain, finalSize)
-	copy(mergedHandlers, group.Handlers)
-	copy(mergedHandlers[len(group.Handlers):], handlers)
+	copy(mergedHandlers, pn.handlers)
+	copy(mergedHandlers[len(pn.handlers):], handlers)
 	return mergedHandlers
 }
 
-func (group *RouterGroup) calculateAbsolutePath(relativePath string) string {
-	return joinPaths(group.basePath, relativePath)
+func (pn *pnode) addGroup(group IHandlers) {
+	for _, g := range pn.groups {
+		if g.Name() == group.Name() {
+			return
+		}
+	}
+	pn.groups = append(pn.groups, group)
 }
 
-func (group *RouterGroup) returnObj() IRoutes {
-	if group.root {
-		return group.engine
+func (pn *pnode) rebuildHandlers(handlers ...HandlerFunc) {
+	pn.handlers = pn.handlers[:0]
+	for _, group := range pn.groups {
+		pn.handlers = pn.combineHandlers(group.Handlers())
 	}
-	return group
+	pn.handlers = pn.combineHandlers(handlers)
+}
+
+func (nodes pnodes) get(name string) *pnode {
+	for _, n := range nodes {
+		if n.name == name {
+			return n
+		}
+	}
+	return nil
 }

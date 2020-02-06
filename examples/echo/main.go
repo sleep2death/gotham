@@ -20,7 +20,7 @@ func main() {
 	router := gotham.New()
 
 	// Define your handlers
-	router.Handle("/pb/EchoMessage", func(c *gotham.Context) {
+	router.Handle("pb.EchoMessage", func(c *gotham.Context) {
 		message := new(pb.EchoMessage)
 
 		// If some error fires, you can abort the request.

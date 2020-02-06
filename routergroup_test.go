@@ -1,65 +1,60 @@
 package gotham
 
 import (
-	fmt "fmt"
 	"testing"
 
-	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRouterGroupBasic(t *testing.T) {
-	router := New()
-	group := router.Group("/hola", func(c *Context) {})
-	group.Use(func(c *Context) {})
+func TestNewRouterHandle(t *testing.T) {
+	r := New()
+	r.Handle("pb.Hello", func(c *Context) {})
 
-	assert.Len(t, group.Handlers, 2)
-	assert.Equal(t, "/hola", group.BasePath())
-	assert.Equal(t, router, group.engine)
+	assert.Equal(t, 0, len(r.groups))
+	assert.Equal(t, "pb.Hello", r.nodes[0].name)
 
-	group2 := group.Group("manu")
-	group2.Use(func(c *Context) {}, func(c *Context) {})
+	r.Handle("pb.Bye", func(c *Context) {})
 
-	assert.Len(t, group2.Handlers, 4)
-	assert.Equal(t, "/hola/manu", group2.BasePath())
-	assert.Equal(t, router, group2.engine)
+	assert.Equal(t, 0, len(r.groups))
+	assert.Equal(t, 2, len(r.nodes))
+	assert.Equal(t, "pb.Bye", r.nodes[1].name)
+
+	// test overwrite of the url
+	assert.NotPanics(t, func() { r.Handle("pb.Hello", func(c *Context) {}) })
+	assert.Equal(t, 2, len(r.nodes))
 }
 
-func TestRouterGroupBasicHandle(t *testing.T) {
-	router := New()
+func TestNewRouterMiddlewares(t *testing.T) {
+	r := New()
+	var funca HandlerFunc = func(c *Context) {}
+	var funcb HandlerFunc = func(c *Context) {}
+	r.Use(funca, funcb)
+	r.Handle("pb.Hello", func(c *Context) {})
+	assert.Equal(t, 1, len(r.nodes))
+	assert.Equal(t, 3, len(r.nodes[0].handlers))
 
-	v1 := router.Group("v1", func(c *Context) {})
-	assert.Equal(t, "/v1", v1.BasePath())
+	r.Use(funca, funcb)
+	assert.NotPanics(t, func() { r.Handle("pb.Hello", func(c *Context) {}) })
 
-	login := v1.Group("/login/", func(c *Context) {}, func(c *Context) {})
-	assert.Equal(t, "/v1/login/", login.BasePath())
-
-	handler := func(c *Context) {
-		c.Write(&pb.Error{Code: 400, Message: fmt.Sprintf("index %d", c.index)})
-		c.Writer.(*respRecorder).keepAlive = false
-	}
-	v1.Handle("/test", handler)
-	login.Handle("/test", handler)
-
-	var rc respRecorder
-	router.ServeProto(&rc, &Request{URL: "/v1/login/test"})
-
-	resp, ok := rc.Message.(*pb.Error)
-	assert.Equal(t, true, ok, "should return protobuf message.")
-	assert.Equal(t, uint32(400), resp.GetCode())
-	assert.Equal(t, "index 3", resp.GetMessage())
+	r.Handle("pb.Bye", func(c *Context) {})
+	assert.Equal(t, 5, len(r.nodes[1].handlers))
+	assert.Equal(t, 2, len(r.nodes))
 }
 
-func TestRouterGroupTooManyHandlers(t *testing.T) {
-	router := New()
-	handlers1 := make([]HandlerFunc, 40)
-	router.Use(handlers1...)
+func TestNewRouterGroup(t *testing.T) {
+	r := New()
 
-	handlers2 := make([]HandlerFunc, 26)
-	assert.Panics(t, func() {
-		router.Use(handlers2...)
-	})
-	assert.Panics(t, func() {
-		router.Handle("/", handlers2...)
-	})
+	r.Use(func(c *Context) {})
+	r.Use(func(c *Context) {})
+
+	group := r.Group("test1")
+	group.Handle("pb.Hello", func(c *Context) {})
+	assert.Equal(t, 3, len(r.nodes[0].handlers))
+
+	group = r.Group("test2")
+	group.Handle("pb.Bye", func(c *Context) {})
+	assert.Equal(t, 3, len(r.nodes[1].handlers))
+
+	assert.NotPanics(t, func() { group.Handle("pb.Hello", func(c *Context) {}) })
+	assert.NotPanics(t, func() { group.Handle("pb.Bye", func(c *Context) {}) })
 }
