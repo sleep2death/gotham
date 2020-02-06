@@ -55,8 +55,6 @@ func New() *Router {
 		RouterGroup: RouterGroup{
 			handlers: nil,
 			name:     "default",
-			// basePath: "/",
-			root: true,
 		},
 		nodes: make(pnodes, 0),
 	}
@@ -122,13 +120,11 @@ func (router *Router) addRoute(path string, handlers HandlersChain) {
 	assert1(len(handlers) > 0, "there must be at least one handler")
 
 	debugPrintRoute(path, handlers)
-	// router.root.addRoute(path, handlers)
 }
 
 // Routes returns a slice of registered routes, including some useful information, such as:
 // the http method, path and the handler name.
 func (router *Router) Routes() (routes RoutesInfo) {
-	// tree := router.root
 	routes = iterate(routes, router.nodes)
 	return routes
 }

@@ -48,12 +48,22 @@ func TestNewRouterGroup(t *testing.T) {
 	r.Use(func(c *Context) {})
 
 	group := r.Group("test1")
+
 	group.Handle("pb.Hello", func(c *Context) {})
 	assert.Equal(t, 3, len(r.nodes[0].handlers))
 
 	group = r.Group("test2")
+	group.Use(func(c *Context) {})
+
 	group.Handle("pb.Bye", func(c *Context) {})
-	assert.Equal(t, 3, len(r.nodes[1].handlers))
+	assert.Equal(t, 4, len(r.nodes[1].handlers))
+
+	group.Handle("pb.Hello")
+	assert.Equal(t, 4, len(r.nodes[0].handlers))
+
+	group = r.Group("test3")
+	group.Handle("pb.Hello", func(c *Context) {})
+	assert.Equal(t, 5, len(r.nodes[0].handlers))
 
 	assert.NotPanics(t, func() { group.Handle("pb.Hello", func(c *Context) {}) })
 	assert.NotPanics(t, func() { group.Handle("pb.Bye", func(c *Context) {}) })

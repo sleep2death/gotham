@@ -13,7 +13,6 @@ type IRoutes interface {
 type RouterGroup struct {
 	handlers HandlersChain
 	name     string
-	root     bool
 	router   *Router
 }
 
@@ -47,9 +46,10 @@ func (group *RouterGroup) Use(middlewares ...HandlerFunc) IRoutes {
 type pnodes []*pnode
 
 type pnode struct {
-	name     string
-	groups   []IHandlers
-	handlers HandlersChain
+	name      string
+	groups    []IHandlers
+	phandlers HandlersChain
+	handlers  HandlersChain
 }
 
 func (pn *pnode) combineHandlers(handlers HandlersChain) HandlersChain {
@@ -73,11 +73,12 @@ func (pn *pnode) addGroup(group IHandlers) {
 }
 
 func (pn *pnode) rebuildHandlers(handlers ...HandlerFunc) {
+	pn.phandlers = append(pn.phandlers, handlers...)
 	pn.handlers = pn.handlers[:0]
 	for _, group := range pn.groups {
 		pn.handlers = pn.combineHandlers(group.Handlers())
 	}
-	pn.handlers = pn.combineHandlers(handlers)
+	pn.handlers = pn.combineHandlers(pn.phandlers)
 }
 
 func (nodes pnodes) get(name string) *pnode {
