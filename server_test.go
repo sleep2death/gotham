@@ -283,3 +283,21 @@ func TestErrorFrame(t *testing.T) {
 	assert.Equal(t, "Pong Error", msg.GetMessage())
 
 }
+
+func TestServerShutDown(t *testing.T) {
+	addr := ":9000"
+	server := &Server{Addr: addr, Handler: &tHandler{}}
+	go server.ListenAndServe()
+
+	time.Sleep(time.Millisecond * 5)
+	// connect to server
+	for i := 0; i < 50; i++ {
+		_, err := net.Dial("tcp", addr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(time.Millisecond * 5)
+	}
+
+	server.Shutdown()
+}

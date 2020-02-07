@@ -9,17 +9,17 @@ import (
 
 func BenchmarkOneRoute(B *testing.B) {
 	router := New()
-	router.Handle("/pb/Ping", func(c *Context) {
+	router.Handle("pb.Ping", func(c *Context) {
 	})
-	runRequest(B, router, "/pb/Ping")
+	runRequest(B, router, "pb.Ping")
 }
 
 func BenchmarkWithRecoveryMiddleware(B *testing.B) {
 	router := New()
 	router.Use(Recovery())
-	router.Handle("/pb/Ping", func(c *Context) {
+	router.Handle("pb.Ping", func(c *Context) {
 	})
-	runRequest(B, router, "/pb/Ping")
+	runRequest(B, router, "pb.Ping")
 }
 
 func BenchmarkLoggerMiddleware(B *testing.B) {
@@ -36,13 +36,13 @@ func BenchmarkManyHandlers(B *testing.B) {
 	router.Use(Recovery(), LoggerWithWriter(new(mockIOWriter)))
 	router.Use(func(c *Context) {})
 	router.Use(func(c *Context) {})
-	router.Handle("/pb/Ping", func(c *Context) {})
-	runRequest(B, router, "pb/Ping")
+	router.Handle("pb.Ping", func(c *Context) {})
+	runRequest(B, router, "pb.Ping")
 }
 
 func BenchmarkDecodeAndEncode(B *testing.B) {
 	router := New()
-	router.Handle("/pb/Ping", func(c *Context) {
+	router.Handle("pb.Ping", func(c *Context) {
 		msg := new(pb.Ping)
 		proto.Unmarshal(c.Request.Data, msg)
 
@@ -50,15 +50,15 @@ func BenchmarkDecodeAndEncode(B *testing.B) {
 		c.Write(msg)
 	})
 
-	runRequest(B, router, "pb/Ping")
+	runRequest(B, router, "pb.Ping")
 }
 
 func BenchmarkOneRouteSet(B *testing.B) {
 	router := New()
-	router.Handle("/pb/Ping", func(c *Context) {
+	router.Handle("pb.Ping", func(c *Context) {
 		c.Set("hello", "world")
 	})
-	runRequest(B, router, "/pb/Ping")
+	runRequest(B, router, "pb.Ping")
 }
 
 type mockWriter struct{}
