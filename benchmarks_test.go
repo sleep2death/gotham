@@ -44,7 +44,7 @@ func BenchmarkDecodeAndEncode(B *testing.B) {
 	router := New()
 	router.Handle("pb.Ping", func(c *Context) {
 		msg := new(pb.Ping)
-		proto.Unmarshal(c.Request.Data, msg)
+		proto.Unmarshal(c.Request.Data(), msg)
 
 		msg.Message = "Pong"
 		c.Write(msg)
@@ -81,7 +81,7 @@ func runRequest(B *testing.B, r *Router, path string) {
 	// fake request
 	msg := pb.Ping{Message: "Ping"}
 	data, _ := proto.Marshal(&msg)
-	req := &Request{URL: path, Data: data}
+	req := &Request{typeurl: path, data: data}
 
 	w := &mockWriter{}
 

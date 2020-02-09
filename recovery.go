@@ -50,10 +50,10 @@ func RecoveryWithWriter(out io.Writer) HandlerFunc {
 				if logger != nil {
 					stack := stack(3)
 					if brokenPipe {
-						logger.Printf("%s\n%s%s", err, string(c.Request.RemoteAddr), reset)
+						logger.Printf("%s\n%s%s", err, string(c.Request.RemoteAddr()), reset)
 					} else {
 						logger.Printf("[Recovery] %s panic recovered:\n[%s] %s\n%s%s",
-							timeFormat(time.Now()), c.Request.URL, err, stack, reset)
+							timeFormat(time.Now()), c.Request.typeurl, err, stack, reset)
 					}
 				}
 

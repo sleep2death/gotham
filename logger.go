@@ -206,7 +206,7 @@ func LoggerWithConfig(conf LoggerConfig) HandlerFunc {
 	return func(c *Context) {
 		// Start timer
 		start := time.Now()
-		path := c.Request.URL
+		path := c.Request.typeurl
 
 		// Process request
 		c.Next()

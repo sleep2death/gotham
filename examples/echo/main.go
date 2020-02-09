@@ -72,7 +72,7 @@ func main() {
 				log.Fatalf("client read data error: %s.", err)
 			}
 			// Unmarshal the raw data
-			err = proto.Unmarshal(res.Data, msg)
+			err = proto.Unmarshal(res.Data(), msg)
 			if err != nil {
 				log.Fatalf("client read data error: %s.", err)
 			}

@@ -104,7 +104,7 @@ type tHandler struct {
 }
 
 func (rr *tHandler) ServeProto(w ResponseWriter, req *Request) {
-	switch req.URL {
+	switch req.typeurl {
 	case "pb.Ping":
 		var msg pb.Ping
 		msg.Message = "Pong"
@@ -160,11 +160,11 @@ func TestReadWriteData(t *testing.T) {
 	var pong pb.Ping
 	// read one
 	res, err := ReadFrame(r)
-	proto.Unmarshal(res.Data, &pong)
+	proto.Unmarshal(res.Data(), &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// read two
 	res, err = ReadFrame(r)
-	proto.Unmarshal(res.Data, &pong)
+	proto.Unmarshal(res.Data(), &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 
 	time.Sleep(time.Millisecond * 5)
@@ -194,7 +194,7 @@ func TestReadWriteData(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 5)
 	res, err = ReadFrame(r)
-	proto.Unmarshal(res.Data, &pong)
+	proto.Unmarshal(res.Data(), &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// test incomplete body
 	// write the broken body first
@@ -208,7 +208,7 @@ func TestReadWriteData(t *testing.T) {
 	w.Flush()
 	time.Sleep(time.Millisecond * 5)
 	res, err = ReadFrame(r)
-	proto.Unmarshal(res.Data, &pong)
+	proto.Unmarshal(res.Data(), &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
 
@@ -234,7 +234,7 @@ func TestWriteFrame(t *testing.T) {
 	time.Sleep(time.Millisecond * 5)
 	var pong pb.Ping
 	res, _ := ReadFrame(r)
-	proto.Unmarshal(res.Data, &pong)
+	proto.Unmarshal(res.Data(), &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 
 	putBufioReader(r)
@@ -247,7 +247,7 @@ func TestWriteFrame(t *testing.T) {
 	w.Flush()
 
 	res, _ = ReadFrame(r)
-	proto.Unmarshal(res.Data, &pong)
+	proto.Unmarshal(res.Data(), &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
 
@@ -279,7 +279,7 @@ func TestErrorFrame(t *testing.T) {
 	// still get the error response
 	var msg pb.Error
 	res, _ := ReadFrame(r)
-	proto.Unmarshal(res.Data, &msg)
+	proto.Unmarshal(res.Data(), &msg)
 	assert.Equal(t, "Pong Error", msg.GetMessage())
 
 }

@@ -377,10 +377,25 @@ const (
 
 // Request wrap the connection and other userful information of the client's request
 type Request struct {
-	Conn       *conn
-	URL        string
-	Data       []byte
-	RemoteAddr string
+	conn    *conn
+	typeurl string
+	data    []byte
+	raddr   string
+}
+
+func (req *Request) TypeURL() string {
+	return req.typeurl
+}
+
+func (req *Request) Data() []byte {
+	return req.data
+}
+
+func (req *Request) RemoteAddr() string {
+	if req.conn != nil {
+		return req.conn.remoteAddr
+	}
+	return "0.0.0.0"
 }
 
 type conn struct {
@@ -522,7 +537,7 @@ func (c *conn) serve() {
 			}
 
 			if req != nil {
-				req.Conn = c
+				req.conn = c
 				// handle the message to router
 				w := NewResponseWriter(c.bufw)
 
@@ -703,8 +718,8 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	}
 
 	req = &Request{
-		URL:  msg.GetTypeUrl(),
-		Data: msg.GetValue(),
+		typeurl: msg.GetTypeUrl(),
+		data:    msg.GetValue(),
 	}
 	return
 }

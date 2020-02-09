@@ -15,7 +15,6 @@ type Context struct {
 
 	handlers HandlersChain
 	index    int8
-	fullPath string
 
 	// Keys is a key/value pair exclusively for the context of each request.
 	Keys map[string]interface{}
@@ -34,7 +33,6 @@ type Context struct {
 func (c *Context) reset() {
 	c.handlers = nil
 	c.index = -1
-	c.fullPath = ""
 
 	c.Keys = nil
 	c.Errors = c.Errors[0:0]
@@ -61,17 +59,9 @@ func (c *Context) Handler() HandlerFunc {
 	return c.handlers.Last()
 }
 
-func (c *Context) FullPath() string {
-	return c.fullPath
-}
-
-func (c *Context) Data() []byte {
-	return c.Request.Data
-}
-
 func (c *Context) ClientIP() string {
-	if c.Request.Conn != nil {
-		return c.Request.Conn.remoteAddr
+	if c.Request.conn != nil {
+		return c.Request.conn.remoteAddr
 	}
 	return "0.0.0.0"
 }

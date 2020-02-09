@@ -176,10 +176,9 @@ func (r *Router) ServeProto(w ResponseWriter, req *Request) {
 func (router *Router) handleProtoRequest(c *Context) {
 	// Find route in the tree
 	// url, _ := fixPath(c.Request.URL)
-	value := router.nodes.get(c.Request.URL)
+	value := router.nodes.get(c.Request.typeurl)
 	if value != nil {
 		c.handlers = value.handlers
-		c.fullPath = value.name
 	} else {
 		// no route was found
 		c.handlers = router.allNoRoute

@@ -15,7 +15,7 @@ func performRequest(url string, r *Router) *respRecorder {
 	rr := &respRecorder{}
 	rr.writer = b
 	rr.status = http.StatusOK
-	r.ServeProto(rr, &Request{URL: url})
+	r.ServeProto(rr, &Request{typeurl: url})
 	return rr
 }
 
