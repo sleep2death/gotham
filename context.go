@@ -85,6 +85,7 @@ func (c *Context) IsAborted() bool {
 // for this request are not called.
 func (c *Context) Abort() {
 	c.index = abortIndex
+	c.Writer.SetKeepAlive(false)
 }
 
 func (c *Context) AbortWithStatus(code int) {

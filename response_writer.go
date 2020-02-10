@@ -41,6 +41,9 @@ type ResponseWriter interface {
 	// Returns false if the server should close the connection after flush the data.
 	KeepAlive() bool
 
+	// Returns false if the server should close the connection after flush the data.
+	SetKeepAlive(value bool)
+
 	// Write the protobuf into sending buffer.
 	Write(message proto.Message) error
 }
@@ -70,6 +73,10 @@ func (rw *responseWriter) Status() int {
 
 func (rw *responseWriter) KeepAlive() bool {
 	return rw.keepAlive
+}
+
+func (rw *responseWriter) SetKeepAlive(value bool) {
+	rw.keepAlive = value
 }
 
 func (rw *responseWriter) Buffered() int {
