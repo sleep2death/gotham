@@ -89,7 +89,7 @@ func (c *Context) Abort() {
 
 func (c *Context) AbortWithStatus(code int) {
 	c.Abort()
-	c.WriteError(code, "Request has been aborted by server.")
+	c.writeError(code, "Request has been aborted by server.")
 }
 
 /************************************/
@@ -249,7 +249,7 @@ func (c *Context) Write(msg proto.Message) error {
 	return c.Writer.Write(msg)
 }
 
-func (c *Context) WriteError(code int, message string) error {
+func (c *Context) writeError(code int, message string) error {
 	// c.Writer.SetClose(close)
 	c.Writer.SetStatus(code)
 	return c.Writer.Write(&pb.Error{Code: uint32(code), Message: message})

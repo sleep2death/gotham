@@ -184,7 +184,7 @@ func TestContextWriteMessage(t *testing.T) {
 func TestContextWriteError(t *testing.T) {
 	w := &respRecorder{}
 	c, _ := CreateTestContext(w)
-	c.WriteError(http.StatusBadRequest, "bad request")
+	c.writeError(http.StatusBadRequest, "bad request")
 
 	assert.Equal(t, "bad request", w.Message.(*pb.Error).GetMessage())
 	assert.Equal(t, uint32(http.StatusBadRequest), w.Message.(*pb.Error).GetCode())
