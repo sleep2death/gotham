@@ -223,7 +223,7 @@ func LoggerWithConfig(conf LoggerConfig) HandlerFunc {
 			param.TimeStamp = time.Now()
 			param.Latency = param.TimeStamp.Sub(start)
 
-			param.ClientIP = c.ClientIP()
+			param.ClientIP = c.Request.RemoteAddr()
 			param.StatusCode = c.Writer.Status()
 			param.ErrorMessage = c.Errors.ByType(ErrorTypePrivate).String()
 

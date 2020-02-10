@@ -59,13 +59,6 @@ func (c *Context) Handler() HandlerFunc {
 	return c.handlers.Last()
 }
 
-func (c *Context) ClientIP() string {
-	if c.Request.conn != nil {
-		return c.Request.conn.remoteAddr
-	}
-	return "0.0.0.0"
-}
-
 /************************************/
 /*********** FLOW CONTROL ***********/
 /************************************/

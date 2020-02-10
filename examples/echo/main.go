@@ -24,7 +24,7 @@ func main() {
 		message := new(pb.EchoMessage)
 
 		// If some error fires, you can abort the request.
-		if err := proto.Unmarshal(c.Data(), message); err != nil {
+		if err := proto.Unmarshal(c.Request.Data(), message); err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
