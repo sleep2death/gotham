@@ -100,7 +100,7 @@ func assertRoutePresent(t *testing.T, gotRoutes RoutesInfo, wantRoute RouteInfo)
 func TestEngineHandleContext(t *testing.T) {
 	r := New()
 	r.Handle("/", func(c *Context) {
-		c.Request.typeurl = "/redirect"
+		c.Request.TypeURL = "/redirect"
 		r.HandleContext(c)
 	})
 	v2 := r.Group("/v2")
@@ -110,7 +110,7 @@ func TestEngineHandleContext(t *testing.T) {
 
 	assert.NotPanics(t, func() {
 		w := &respRecorder{}
-		r.ServeProto(w, &Request{typeurl: "/"})
+		r.ServeProto(w, &Request{TypeURL: "/"})
 		assert.Equal(t, "redirect", w.Message.(*pb.Ping).GetMessage())
 	})
 }
@@ -125,12 +125,12 @@ func TestRouterServe(t *testing.T) {
 	group := r.Group("pb")
 	group.Use(func(ctx *Context) {
 		// log.Printf("[middleware]")
-		assert.Equal(t, "pb.Ping", ctx.Request.typeurl)
+		assert.Equal(t, "pb.Ping", ctx.Request.TypeURL)
 	})
 
 	group.Handle("pb.Ping", func(ctx *Context) {
 		var msg pb.Ping
-		proto.Unmarshal(ctx.Request.Data(), &msg)
+		proto.Unmarshal(ctx.Request.Data, &msg)
 		msg.Message = "Pong"
 		ctx.Write(&msg)
 		// log.Printf("ping message: %s", msg.GetMessage())
@@ -165,9 +165,9 @@ func TestRouterServe(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "pb.Ping", req.typeurl)
+	assert.Equal(t, "pb.Ping", req.TypeURL)
 	resp := &pb.Ping{}
-	err = proto.Unmarshal(req.Data(), resp)
+	err = proto.Unmarshal(req.Data, resp)
 	assert.Equal(t, "Pong", resp.GetMessage())
 
 	// reader := bufio.NewReader(conn)

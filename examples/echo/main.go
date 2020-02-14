@@ -24,7 +24,7 @@ func main() {
 		message := new(pb.EchoMessage)
 
 		// If some error fires, you can abort the request.
-		if err := proto.Unmarshal(c.Request.Data(), message); err != nil {
+		if err := proto.Unmarshal(c.Request.Data, message); err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
@@ -72,7 +72,7 @@ func main() {
 				log.Fatalf("client read data error: %s.", err)
 			}
 			// Unmarshal the raw data
-			err = proto.Unmarshal(res.Data(), msg)
+			err = proto.Unmarshal(res.Data, msg)
 			if err != nil {
 				log.Fatalf("client read data error: %s.", err)
 			}

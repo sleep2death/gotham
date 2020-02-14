@@ -378,17 +378,8 @@ const (
 // Request wrap the connection and other userful information of the client's request
 type Request struct {
 	conn    *conn
-	typeurl string
-	data    []byte
-	raddr   string
-}
-
-func (req *Request) TypeURL() string {
-	return req.typeurl
-}
-
-func (req *Request) Data() []byte {
-	return req.data
+	TypeURL string
+	Data    []byte
 }
 
 func (req *Request) RemoteAddr() string {
@@ -718,8 +709,8 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 	}
 
 	req = &Request{
-		typeurl: msg.GetTypeUrl(),
-		data:    msg.GetValue(),
+		TypeURL: msg.GetTypeUrl(),
+		Data:    msg.GetValue(),
 	}
 	return
 }

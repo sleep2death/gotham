@@ -53,7 +53,7 @@ func RecoveryWithWriter(out io.Writer) HandlerFunc {
 						logger.Printf("%s\n%s%s", err, string(c.Request.RemoteAddr()), reset)
 					} else {
 						logger.Printf("[Recovery] %s panic recovered:\n[%s] %s\n%s%s",
-							timeFormat(time.Now()), c.Request.typeurl, err, stack, reset)
+							timeFormat(time.Now()), c.Request.TypeURL, err, stack, reset)
 					}
 				}
 
