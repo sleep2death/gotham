@@ -510,6 +510,7 @@ func (c *conn) serve() {
 		}
 		// read frame header
 		fh, err := ReadFrameHeader(c.bufr)
+		// log.Print(fh)
 		// it's ok to continue, when reached the EOF
 		if err != nil && err != io.EOF {
 			// TODO: log error instead?
@@ -538,6 +539,7 @@ func (c *conn) serve() {
 
 				// flush bufw, if any
 				// TODO: validation?
+				// log.Print(w.Buffered(), c.server.WriteTimeout)
 				if w.Buffered() > 0 {
 					if d := c.server.WriteTimeout; d != 0 {
 						c.rwc.SetWriteDeadline(time.Now().Add(d))

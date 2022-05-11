@@ -2,6 +2,7 @@ package gotham
 
 import (
 	"bufio"
+	"crypto/sha1"
 	"net"
 	"testing"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/sleep2death/gotham/pb"
 	"github.com/stretchr/testify/assert"
+	"github.com/xtaci/kcp-go"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 func TestListenAndServe(t *testing.T) {
@@ -300,4 +303,70 @@ func TestServerShutDown(t *testing.T) {
 	}
 
 	server.Shutdown()
+}
+
+func TestServerKCP(t *testing.T) {
+	addr := "127.0.0.1:9000"
+
+	key := pbkdf2.Key([]byte("demo pass"), []byte("demo salt"), 1024, 32, sha1.New)
+	block, _ := kcp.NewAESBlockCrypt(key)
+
+	ln, err := kcp.ListenWithOptions(addr, block, 10, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// var handler Handler
+	server := &Server{Addr: addr, Handler: &tHandler{}}
+
+	// conn will close, if no message was read in 500ms
+	server.ReadTimeout = time.Millisecond * 500
+
+	go server.Serve(ln)
+	defer server.Close()
+
+	time.Sleep(time.Millisecond)
+	// connect to server
+	conn, err := kcp.DialWithOptions(addr, block, 10, 3)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("kcp connected")
+
+	ping := &pb.Ping{
+		Message: "Ping",
+	}
+	content, _ := proto.Marshal(ping)
+
+	any := &any.Any{
+		TypeUrl: "pb.Ping",
+		Value:   content,
+	}
+
+	payload, _ := proto.Marshal(any)
+
+	w := bufio.NewWriter(conn)
+	r := bufio.NewReader(conn)
+
+	// write two frames at once
+	WriteData(w, payload)
+	WriteData(w, payload)
+	w.Flush()
+
+	// wait for response
+	time.Sleep(time.Millisecond * 5)
+	var pong pb.Ping
+	// read one
+	res, err := ReadFrame(r)
+	proto.Unmarshal(res.Data, &pong)
+	assert.Equal(t, "Pong", pong.GetMessage())
+	// read two
+	res, err = ReadFrame(r)
+	proto.Unmarshal(res.Data, &pong)
+	assert.Equal(t, "Pong", pong.GetMessage())
+
+	t.Log("kcp read")
+
+	time.Sleep(time.Millisecond * 5)
 }
