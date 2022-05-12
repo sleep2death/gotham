@@ -151,7 +151,7 @@ func TestRouterServe(t *testing.T) {
 
 	// write message frame to server
 	msg := &pb.Ping{Message: str}
-	WriteFrame(w, msg)
+	WriteFrame(w, msg, &ProtobufCodec{})
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)

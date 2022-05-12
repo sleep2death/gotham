@@ -13,7 +13,7 @@ import (
 
 func TestCreateResponseWriter(t *testing.T) {
 	var writer bufio.Writer
-	rw := NewResponseWriter(&writer)
+	rw := NewResponseWriter(&writer, &ProtobufCodec{})
 
 	assert.Equal(t, http.StatusOK, rw.Status())
 	assert.Equal(t, 0, rw.Buffered())
@@ -22,7 +22,7 @@ func TestCreateResponseWriter(t *testing.T) {
 
 func TestResponseWriterWrite(t *testing.T) {
 	var b bytes.Buffer
-	rw := NewResponseWriter(bufio.NewWriter(&b))
+	rw := NewResponseWriter(bufio.NewWriter(&b), &ProtobufCodec{})
 
 	err := rw.Write(&pb.Ping{Message: "hola"})
 	assert.Equal(t, 22, rw.Buffered())
@@ -50,7 +50,7 @@ func TestResponseWriterFlush(t *testing.T) {
 	}
 
 	w := bufio.NewWriter(conn)
-	rw := NewResponseWriter(w)
+	rw := NewResponseWriter(w, &ProtobufCodec{})
 	msg := &pb.Ping{
 		Message: "hola",
 	}

@@ -63,7 +63,7 @@ func main() {
 			}
 
 			// Write the message with a little help of gotham utils function.
-			if err := gotham.WriteFrame(client, msg); err != nil {
+			if err := gotham.WriteFrame(client, msg, &gotham.ProtobufCodec{}); err != nil {
 				log.Fatalf("client write data error: %s.", err)
 			}
 

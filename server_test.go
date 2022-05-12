@@ -91,7 +91,7 @@ func TestServe(t *testing.T) {
 	msg := &pb.Ping{
 		Message: "Ping",
 	}
-	WriteFrame(w, msg)
+	WriteFrame(w, msg, &ProtobufCodec{})
 	w.Flush()
 
 	// sleep 100ms, so the conn will be idle, and closed
@@ -231,7 +231,7 @@ func TestWriteFrame(t *testing.T) {
 	w := newBufioWriter(conn)
 	r := newBufioReader(conn)
 
-	WriteFrame(w, &pb.Ping{Message: "Ping"})
+	WriteFrame(w, &pb.Ping{Message: "Ping"}, &ProtobufCodec{})
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)
@@ -246,7 +246,7 @@ func TestWriteFrame(t *testing.T) {
 	w = newBufioWriter(conn)
 	r = newBufioReader(conn)
 
-	WriteFrame(w, &pb.Ping{Message: "Ping"})
+	WriteFrame(w, &pb.Ping{Message: "Ping"}, &ProtobufCodec{})
 	w.Flush()
 
 	res, _ = ReadFrame(r, &ProtobufCodec{})
@@ -270,7 +270,7 @@ func TestErrorFrame(t *testing.T) {
 	w := newBufioWriter(conn)
 	r := newBufioReader(conn)
 
-	WriteFrame(w, &pb.Error{Code: 400, Message: "Ping Error"})
+	WriteFrame(w, &pb.Error{Code: 400, Message: "Ping Error"}, &ProtobufCodec{})
 	w.Flush()
 
 	// server close the conn because of the error

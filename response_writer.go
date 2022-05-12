@@ -4,9 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
 )
 
 const (
@@ -96,43 +93,32 @@ func (rw *responseWriter) Flush() error {
 }
 
 func (rw *responseWriter) Write(data interface{}) error {
-	return WriteFrame(rw.writer, data)
+	return WriteFrame(rw.writer, data, rw.codec)
 }
 
 type respRecorder struct {
 	responseWriter
-	Message proto.Message
+	Message interface{}
+	codec   Codec
 }
 
-func (rr *respRecorder) Write(message proto.Message) error {
-	rr.Message = message
+func (rr *respRecorder) Write(data interface{}) error {
+	rr.Message = data
+
 	if rr.writer != nil {
-		return WriteFrame(rr.writer, message)
+		return WriteFrame(rr.writer, data, rr.codec)
 	}
 	return nil
 }
 
 // WriteFrame with given url
-func WriteFrame(w io.Writer, message proto.Message) error {
+func WriteFrame(w io.Writer, data interface{}, codec Codec) error {
 	// marshal the payload pb
-	buf, err := proto.Marshal(message)
+	buf, err := codec.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	// transfer dot to slash
-	url := proto.MessageName(message)
-	// wrap it to any pb
-	anyMsg := &any.Any{
-		TypeUrl: url,
-		Value:   buf,
-	}
-	// marshal the any pb
-	buf, err = proto.Marshal(anyMsg)
-	if err != nil {
-		return err
-	}
-	// write the frame head
 	return WriteData(w, buf)
 }
 

@@ -535,7 +535,7 @@ func (c *conn) serve() {
 			if req != nil {
 				req.conn = c
 				// handle the message to router
-				w := NewResponseWriter(c.bufw)
+				w := NewResponseWriter(c.bufw, &ProtobufCodec{})
 
 				if c.server.Handler != nil {
 					c.server.Handler.ServeProto(w, req)

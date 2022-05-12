@@ -2,7 +2,6 @@ package gotham
 
 import (
 	"errors"
-	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -174,18 +173,9 @@ func TestContextHandler(t *testing.T) {
 }
 
 func TestContextWriteMessage(t *testing.T) {
-	w := &respRecorder{}
+	w := &respRecorder{codec: &ProtobufCodec{}}
 	c, _ := CreateTestContext(w)
 	c.Write(&pb.Ping{Message: "Hello"})
 
 	assert.Equal(t, "Hello", w.Message.(*pb.Ping).GetMessage())
-}
-
-func TestContextWriteError(t *testing.T) {
-	w := &respRecorder{}
-	c, _ := CreateTestContext(w)
-	c.writeError(http.StatusBadRequest, "bad request")
-
-	assert.Equal(t, "bad request", w.Message.(*pb.Error).GetMessage())
-	assert.Equal(t, uint32(http.StatusBadRequest), w.Message.(*pb.Error).GetCode())
 }

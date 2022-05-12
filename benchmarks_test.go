@@ -63,13 +63,13 @@ func BenchmarkOneRouteSet(B *testing.B) {
 
 type mockWriter struct{}
 
-func (mw *mockWriter) Flush() error                  { return nil }
-func (mw *mockWriter) Buffered() int                 { return 0 }
-func (mw *mockWriter) SetStatus(code int)            {}
-func (mw *mockWriter) Status() int                   { return 200 }
-func (mw *mockWriter) KeepAlive() bool               { return true }
-func (mw *mockWriter) SetKeepAlive(value bool)       {}
-func (mw *mockWriter) Write(msg proto.Message) error { return nil }
+func (mw *mockWriter) Flush() error                 { return nil }
+func (mw *mockWriter) Buffered() int                { return 0 }
+func (mw *mockWriter) SetStatus(code int)           {}
+func (mw *mockWriter) Status() int                  { return 200 }
+func (mw *mockWriter) KeepAlive() bool              { return true }
+func (mw *mockWriter) SetKeepAlive(value bool)      {}
+func (mw *mockWriter) Write(data interface{}) error { return nil }
 
 type mockIOWriter struct{}
 
