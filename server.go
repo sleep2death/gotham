@@ -383,7 +383,7 @@ const (
 type Request struct {
 	conn    *conn
 	TypeURL string
-	Data    []byte
+	Data    interface{}
 }
 
 func (req *Request) RemoteAddr() string {
