@@ -2,6 +2,7 @@ package gotham
 
 import (
 	"math"
+	"net/http"
 	"sync"
 )
 
@@ -74,7 +75,7 @@ func Default() *Router {
 }
 
 func DefaultNoRouteHandler(c *Context) {
-	// c.writeError(http.StatusNotFound, "route not found")
+	c.writeError(http.StatusNotFound, "route not found")
 }
 
 func (router *Router) allocateContext() *Context {
@@ -183,5 +184,4 @@ func (router *Router) handleProtoRequest(c *Context) {
 		c.handlers = router.allNoRoute
 	}
 	c.Next()
-
 }

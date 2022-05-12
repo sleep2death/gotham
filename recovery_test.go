@@ -18,7 +18,7 @@ func TestPanicClean(t *testing.T) {
 	router.Use(RecoveryWithWriter(buffer))
 	router.Handle("/recovery", func(c *Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
-		panic("Oupps, Houston, we have a problem")
+		panic("Oops, Houston, we have a problem")
 	})
 	// RUN
 	w := performRequest("/recovery", router)
@@ -32,14 +32,14 @@ func TestPanicInHandler(t *testing.T) {
 	router := New()
 	router.Use(RecoveryWithWriter(buffer))
 	router.Handle("/recovery", func(_ *Context) {
-		panic("Oupps, Houston, we have a problem")
+		panic("Oops, Houston, we have a problem")
 	})
 	// RUN
 	w := performRequest("/recovery", router)
 	// TEST
 	assert.Equal(t, http.StatusInternalServerError, w.Status())
 	assert.Contains(t, buffer.String(), "panic recovered")
-	assert.Contains(t, buffer.String(), "Oupps, Houston, we have a problem")
+	assert.Contains(t, buffer.String(), "Oops, Houston, we have a problem")
 	assert.Contains(t, buffer.String(), "TestPanicInHandler")
 }
 
