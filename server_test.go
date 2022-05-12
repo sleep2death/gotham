@@ -17,17 +17,17 @@ import (
 
 func TestListenAndServe(t *testing.T) {
 	addr := "fataladdr"
-	err := ListenAndServe(addr, nil)
+	err := ListenAndServe(addr, nil, nil)
 
 	assert.Error(t, err, "missing port in address")
 
 	addr = ""
-	err = ListenAndServe(addr, nil)
+	err = ListenAndServe(addr, nil, nil)
 	assert.EqualError(t, err, "empty address")
 
 	addr = ":9000"
 	var handler Handler
-	server := &Server{Addr: addr, Handler: handler}
+	server := &Server{Addr: addr, Handler: handler, Codec: &ProtobufCodec{}}
 
 	// start the server
 	go server.ListenAndServe()
@@ -47,7 +47,7 @@ func TestServe(t *testing.T) {
 	}
 
 	var handler Handler
-	server := &Server{Addr: addr, Handler: handler}
+	server := &Server{Addr: addr, Handler: handler, Codec: &ProtobufCodec{}}
 	// conn will close, if no message was read in 50ms
 	server.ReadTimeout = time.Millisecond * 50
 	go server.Serve(ln)
@@ -127,7 +127,7 @@ func (rr *tHandler) ServeProto(w ResponseWriter, req *Request) {
 
 func TestReadWriteData(t *testing.T) {
 	addr := ":9000"
-	server := &Server{Addr: addr, Handler: &tHandler{}}
+	server := &Server{Addr: addr, Handler: &tHandler{}, Codec: &ProtobufCodec{}}
 	go server.ListenAndServe()
 	defer server.Close()
 
@@ -162,11 +162,11 @@ func TestReadWriteData(t *testing.T) {
 	time.Sleep(time.Millisecond * 5)
 	var pong pb.Ping
 	// read one
-	res, err := ReadFrame(r)
+	res, err := ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// read two
-	res, err = ReadFrame(r)
+	res, err = ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 
@@ -196,7 +196,7 @@ func TestReadWriteData(t *testing.T) {
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 5)
-	res, err = ReadFrame(r)
+	res, err = ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// test incomplete body
@@ -210,14 +210,14 @@ func TestReadWriteData(t *testing.T) {
 	w.Write(wbuf)
 	w.Flush()
 	time.Sleep(time.Millisecond * 5)
-	res, err = ReadFrame(r)
+	res, err = ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
 
 func TestWriteFrame(t *testing.T) {
 	addr := ":9000"
-	server := &Server{Addr: addr, Handler: &tHandler{}}
+	server := &Server{Addr: addr, Handler: &tHandler{}, Codec: &ProtobufCodec{}}
 	go server.ListenAndServe()
 	defer server.Close()
 
@@ -236,7 +236,7 @@ func TestWriteFrame(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 5)
 	var pong pb.Ping
-	res, _ := ReadFrame(r)
+	res, _ := ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 
@@ -249,14 +249,14 @@ func TestWriteFrame(t *testing.T) {
 	WriteFrame(w, &pb.Ping{Message: "Ping"})
 	w.Flush()
 
-	res, _ = ReadFrame(r)
+	res, _ = ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 }
 
 func TestErrorFrame(t *testing.T) {
 	addr := ":9000"
-	server := &Server{Addr: addr, Handler: &tHandler{}}
+	server := &Server{Addr: addr, Handler: &tHandler{}, Codec: &ProtobufCodec{}}
 	go server.ListenAndServe()
 	defer server.Close()
 
@@ -281,7 +281,7 @@ func TestErrorFrame(t *testing.T) {
 
 	// still get the error response
 	var msg pb.Error
-	res, _ := ReadFrame(r)
+	res, _ := ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &msg)
 	assert.Equal(t, "Pong Error", msg.GetMessage())
 
@@ -289,7 +289,7 @@ func TestErrorFrame(t *testing.T) {
 
 func TestServerShutDown(t *testing.T) {
 	addr := ":9000"
-	server := &Server{Addr: addr, Handler: &tHandler{}}
+	server := &Server{Addr: addr, Handler: &tHandler{}, Codec: &ProtobufCodec{}}
 	go server.ListenAndServe()
 
 	time.Sleep(time.Millisecond * 5)
@@ -317,7 +317,7 @@ func TestServerKCP(t *testing.T) {
 	}
 
 	// var handler Handler
-	server := &Server{Addr: addr, Handler: &tHandler{}}
+	server := &Server{Addr: addr, Handler: &tHandler{}, Codec: &ProtobufCodec{}}
 
 	// conn will close, if no message was read in 500ms
 	server.ReadTimeout = time.Millisecond * 500
@@ -358,11 +358,11 @@ func TestServerKCP(t *testing.T) {
 	time.Sleep(time.Millisecond * 5)
 	var pong pb.Ping
 	// read one
-	res, err := ReadFrame(r)
+	res, err := ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 	// read two
-	res, err = ReadFrame(r)
+	res, err = ReadFrame(r, &ProtobufCodec{})
 	proto.Unmarshal(res.Data, &pong)
 	assert.Equal(t, "Pong", pong.GetMessage())
 

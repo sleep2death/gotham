@@ -38,7 +38,7 @@ func main() {
 
 	// Run, gotham, Run...
 	addr := ":9090"
-	go func() { log.Fatal(router.Run(addr)) }()
+	go func() { log.Fatal(router.Run(addr, &gotham.ProtobufCodec{})) }()
 
 	// Wait a little while for server prepairing
 	time.Sleep(time.Millisecond * 5)
@@ -67,7 +67,7 @@ func main() {
 				log.Fatalf("client write data error: %s.", err)
 			}
 
-			res, err := gotham.ReadFrame(client)
+			res, err := gotham.ReadFrame(client, &gotham.ProtobufCodec{})
 			if err != nil {
 				log.Fatalf("client read data error: %s.", err)
 			}

@@ -44,8 +44,8 @@ type ResponseWriter interface {
 	// Returns false if the server should close the connection after flush the data.
 	SetKeepAlive(value bool)
 
-	// Write the protobuf into sending buffer.
-	Write(message proto.Message) error
+	// Write the data into sending buffer.
+	Write(data interface{}) error
 }
 
 // responseWriter implements interface ResponseWriter
@@ -53,13 +53,15 @@ type responseWriter struct {
 	writer    io.Writer
 	status    int
 	keepAlive bool
+	codec     Codec
 }
 
-func NewResponseWriter(w io.Writer) *responseWriter {
+func NewResponseWriter(w io.Writer, c Codec) *responseWriter {
 	rw := &responseWriter{}
 	rw.writer = w
 	rw.keepAlive = true
 	rw.status = defaultStatus
+	rw.codec = c
 	return rw
 }
 
@@ -93,8 +95,8 @@ func (rw *responseWriter) Flush() error {
 	return ErrNotFlusher
 }
 
-func (rw *responseWriter) Write(message proto.Message) error {
-	return WriteFrame(rw.writer, message)
+func (rw *responseWriter) Write(data interface{}) error {
+	return WriteFrame(rw.writer, data)
 }
 
 type respRecorder struct {

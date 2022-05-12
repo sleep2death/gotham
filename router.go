@@ -141,10 +141,10 @@ func iterate(routes RoutesInfo, nodes pnodes) RoutesInfo {
 	return routes
 }
 
-func (r *Router) Run(addr string) (err error) {
+func (r *Router) Run(addr string, codec Codec) (err error) {
 	debugPrint("Listening and serving HTTPS on %s\n", addr)
 	defer func() { debugPrintError(err) }()
-	err = ListenAndServe(addr, r)
+	err = ListenAndServe(addr, r, codec)
 	return
 }
 

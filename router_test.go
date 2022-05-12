@@ -136,7 +136,7 @@ func TestRouterServe(t *testing.T) {
 		// log.Printf("ping message: %s", msg.GetMessage())
 	})
 
-	go r.Run(":9001")
+	go r.Run(":9001", &ProtobufCodec{})
 	time.Sleep(time.Millisecond)
 
 	conn, err := net.Dial("tcp", ":9001")
@@ -160,7 +160,7 @@ func TestRouterServe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := ReadFrameBody(br, fh)
+	req, err := ReadFrameBody(br, fh, &ProtobufCodec{})
 	if err != nil {
 		t.Fatal(err)
 	}

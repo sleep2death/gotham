@@ -11,9 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
 )
 
 // ErrServerClosed is returned by the Server's Serve,
@@ -23,12 +20,19 @@ type Handler interface {
 	ServeProto(ResponseWriter, *Request)
 }
 
+type Codec interface {
+	Marshal(v interface{}) ([]byte, error)
+	Unmarshal(data []byte, req *Request) error
+}
+
 // Server instance
 type Server struct {
 	// Addr optionally specifies the TCP address for the server to listen on,
 	Addr string
 
 	Handler Handler // handler to invoke
+
+	Codec Codec // encoding and decoding data
 
 	// ReadTimeout is the maximum duration for reading the entire
 	// request, including the body.
@@ -58,8 +62,8 @@ type Server struct {
 	onShutdown []func()
 }
 
-func ListenAndServe(addr string, handler Handler) error {
-	server := &Server{Addr: addr, Handler: handler}
+func ListenAndServe(addr string, handler Handler, codec Codec) error {
+	server := &Server{Addr: addr, Handler: handler, Codec: codec}
 	return server.ListenAndServe()
 }
 
@@ -521,7 +525,7 @@ func (c *conn) serve() {
 		c.setState(c.rwc, StateActive)
 
 		if fh.Length > 0 {
-			req, err := ReadFrameBody(c.bufr, fh)
+			req, err := ReadFrameBody(c.bufr, fh, c.server.Codec)
 			// it's ok to continue, when reached the EOF
 			if err != nil && err != io.EOF {
 				// TODO: log error instead?
@@ -539,7 +543,6 @@ func (c *conn) serve() {
 
 				// flush bufw, if any
 				// TODO: validation?
-				// log.Print(w.Buffered(), c.server.WriteTimeout)
 				if w.Buffered() > 0 {
 					if d := c.server.WriteTimeout; d != 0 {
 						c.rwc.SetWriteDeadline(time.Now().Add(d))
@@ -692,7 +695,7 @@ func ReadFrameHeader(r io.Reader) (FrameHeader, error) {
 
 // ReadFrameBody from the io reader and frame header
 // it will return a request if succeed
-func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
+func ReadFrameBody(r io.Reader, fh FrameHeader, codec Codec) (req *Request, err error) {
 	// read frame body
 	// TODO: byte array pooling?
 	fb := make([]byte, fh.Length)
@@ -702,29 +705,24 @@ func ReadFrameBody(r io.Reader, fh FrameHeader) (req *Request, err error) {
 		return nil, err
 	}
 
-	// read frame body
-	var msg any.Any
-	err = proto.Unmarshal(fb, &msg)
+	req = &Request{}
+	err = codec.Unmarshal(fb, req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	req = &Request{
-		TypeURL: msg.GetTypeUrl(),
-		Data:    msg.GetValue(),
-	}
 	return
 }
 
 // ... for test only
-func ReadFrame(r io.Reader) (*Request, error) {
+func ReadFrame(r io.Reader, codec Codec) (*Request, error) {
 	fh, err := ReadFrameHeader(r)
 	if err != nil {
 		return nil, err
 	}
 
-	return ReadFrameBody(r, fh)
+	return ReadFrameBody(r, fh, codec)
 }
 
 // frame header bytes pool.
