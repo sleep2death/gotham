@@ -7,17 +7,17 @@ import (
 	fbs "github.com/sleep2death/gotham/fbs"
 )
 
-type FlatBuffersCodec struct {
+type FlatbuffersCodec struct {
 }
 
-func (pc *FlatBuffersCodec) Unmarshal(data []byte, req *Request) error {
+func (pc *FlatbuffersCodec) Unmarshal(data []byte, req *Request) error {
 	msgt := fbs.GetRootAsMessage(data, 0).UnPack()
 	req.TypeURL = msgt.Url
 	req.Data = msgt.Data
 	return nil
 }
 
-func (pc *FlatBuffersCodec) Marshal(data interface{}) ([]byte, error) {
+func (pc *FlatbuffersCodec) Marshal(data interface{}) ([]byte, error) {
 	if m, ok := data.(fbs.MessageT); ok {
 		builder := flatbuffers.NewBuilder(0)
 		builder.Finish(m.Pack(builder))
