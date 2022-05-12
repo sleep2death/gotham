@@ -2,49 +2,27 @@ package gotham
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+
+	flatbuffers "github.com/google/flatbuffers/go"
+	fbs "github.com/sleep2death/gotham/fbs"
 )
 
 type FlatBuffersCodec struct {
 }
 
 func (pc *FlatBuffersCodec) Unmarshal(data []byte, req *Request) error {
-	var msg any.Any
-	err := proto.Unmarshal(data, &msg)
-
-	if err != nil {
-		return err
-	}
-
-	req.Data = msg.GetValue()
-	req.TypeURL = msg.GetTypeUrl()
+	msgt := fbs.GetRootAsMessage(data, 0).UnPack()
+	req.TypeURL = msgt.Url
+	req.Data = msgt.Data
 	return nil
 }
 
 func (pc *FlatBuffersCodec) Marshal(data interface{}) ([]byte, error) {
-	if m, ok := data.(proto.Message); ok {
-		// marshal the payload pb
-		buf, err := proto.Marshal(m)
-		if err != nil {
-			return nil, err
-		}
+	if m, ok := data.(fbs.MessageT); ok {
+		builder := flatbuffers.NewBuilder(0)
+		builder.Finish(m.Pack(builder))
 
-		// transfer dot to slash
-		url := proto.MessageName(m)
-		// wrap it to any pb
-		anyMsg := &any.Any{
-			TypeUrl: url,
-			Value:   buf,
-		}
-		// marshal the any pb
-		buf, err = proto.Marshal(anyMsg)
-		if err != nil {
-			return nil, err
-		}
-
-		return buf, nil
+		return builder.FinishedBytes(), nil
 	}
-
-	return nil, fmt.Errorf("not a prototype message: %v", data)
+	return nil, fmt.Errorf("not a flatbuffers message: %v", data)
 }

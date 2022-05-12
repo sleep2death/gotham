@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.4.2
+	github.com/google/flatbuffers v2.0.6+incompatible
 	github.com/klauspost/reedsolomon v1.9.16 // indirect
 	github.com/mattn/go-isatty v0.0.9
 	github.com/pkg/errors v0.9.1 // indirect

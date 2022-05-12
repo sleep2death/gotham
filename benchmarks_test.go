@@ -44,7 +44,7 @@ func BenchmarkDecodeAndEncode(B *testing.B) {
 	router := New()
 	router.Handle("pb.Ping", func(c *Context) {
 		msg := new(pb.Ping)
-		proto.Unmarshal(c.Request.Data, msg)
+		proto.Unmarshal(c.Request.Data.([]byte), msg)
 
 		msg.Message = "Pong"
 		c.Write(msg)

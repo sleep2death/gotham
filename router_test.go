@@ -130,7 +130,7 @@ func TestRouterServe(t *testing.T) {
 
 	group.Handle("pb.Ping", func(ctx *Context) {
 		var msg pb.Ping
-		proto.Unmarshal(ctx.Request.Data, &msg)
+		proto.Unmarshal(ctx.Request.Data.([]byte), &msg)
 		msg.Message = "Pong"
 		ctx.Write(&msg)
 		// log.Printf("ping message: %s", msg.GetMessage())
@@ -167,7 +167,7 @@ func TestRouterServe(t *testing.T) {
 
 	assert.Equal(t, "pb.Ping", req.TypeURL)
 	resp := &pb.Ping{}
-	err = proto.Unmarshal(req.Data, resp)
+	err = proto.Unmarshal(req.Data.([]byte), resp)
 	assert.Equal(t, "Pong", resp.GetMessage())
 
 	// reader := bufio.NewReader(conn)
