@@ -32,3 +32,34 @@ func TestFlatbuffersMarshal(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "ping", req.TypeURL)
 }
+
+func TestFlatbuffersUnmarshale(t *testing.T) {
+	builder := flatbuffers.NewBuilder(0)
+
+	url := builder.CreateString("pong")
+	now := time.Now().Unix()
+
+	fbs.PongStart(builder)
+	fbs.PongAddTimeStamp(builder, now)
+	pong := fbs.PongEnd(builder)
+
+	fbs.MessageStart(builder)
+	fbs.MessageAddUrl(builder, url)
+	fbs.MessageAddDataType(builder, fbs.AnyPong)
+	fbs.MessageAddData(builder, pong)
+	msg := fbs.MessageEnd(builder)
+
+	builder.Finish(msg)
+
+	fbc := &FlatbuffersCodec{}
+	req := &Request{}
+
+	err := fbc.Unmarshal(builder.FinishedBytes(), req)
+
+	require.NoError(t, err)
+	require.Equal(t, "pong", req.TypeURL)
+
+	if d, ok := req.Data.(*fbs.Pong); ok {
+		require.Equal(t, now, d.TimeStamp())
+	}
+}
