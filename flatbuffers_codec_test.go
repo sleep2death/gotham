@@ -1,6 +1,8 @@
 package gotham
 
 import (
+	"bufio"
+	"net"
 	"testing"
 	"time"
 
@@ -61,5 +63,65 @@ func TestFlatbuffersUnmarshale(t *testing.T) {
 
 	if d, ok := req.Data.(*fbs.Pong); ok {
 		require.Equal(t, now, d.TimeStamp())
+	}
+}
+
+func TestFlatbuffersCodec(t *testing.T) {
+	addr := ":9000"
+	server := &Server{Addr: addr, Handler: &ttHandler{}, Codec: &FlatbuffersCodec{}}
+	go server.ListenAndServe()
+	defer server.Close()
+
+	time.Sleep(time.Millisecond * 5)
+
+	// connect to server
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	now := time.Now().Unix()
+	ping := &fbs.PingT{
+		TimeStamp: now,
+	}
+
+	msg := &fbs.MessageT{}
+	msg.Url = "ping"
+
+	// add ping data to message
+	msg.Data = &fbs.AnyT{Type: fbs.AnyPing, Value: ping}
+
+	w := bufio.NewWriter(conn)
+	r := bufio.NewReader(conn)
+	WriteFrame(w, msg, &ProtobufCodec{})
+	w.Flush()
+
+	time.Sleep(time.Millisecond * 10)
+
+	req, err := ReadFrame(r, &FlatbuffersCodec{})
+	require.Equal(t, "pong", req.TypeURL)
+	require.Greater(t, req.Data.(*fbs.PongT).TimeStamp, now)
+
+	time.Sleep(time.Millisecond * 10)
+}
+
+type ttHandler struct {
+}
+
+func (rr *ttHandler) ServeProto(w ResponseWriter, req *Request) {
+	switch req.TypeURL {
+	case "ping":
+		var msg fbs.PongT
+		msg.TimeStamp = time.Now().Unix()
+		w.Write(&msg)
+	case "pong":
+		var msg fbs.PingT
+		msg.TimeStamp = time.Now().Unix()
+
+		w.Write(&msg)
+		w.(*responseWriter).keepAlive = false
+	default:
+		// log.Println("no url handler found")
+		panic("no url handler found")
 	}
 }
