@@ -7,18 +7,18 @@ import (
 )
 
 type PingT struct {
-	TimeStamp int64
+	Timestamp int64
 }
 
 func (t *PingT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil { return 0 }
 	PingStart(builder)
-	PingAddTimeStamp(builder, t.TimeStamp)
+	PingAddTimestamp(builder, t.Timestamp)
 	return PingEnd(builder)
 }
 
 func (rcv *Ping) UnPackTo(t *PingT) {
-	t.TimeStamp = rcv.TimeStamp()
+	t.Timestamp = rcv.Timestamp()
 }
 
 func (rcv *Ping) UnPack() *PingT {
@@ -55,7 +55,7 @@ func (rcv *Ping) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *Ping) TimeStamp() int64 {
+func (rcv *Ping) Timestamp() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -63,15 +63,15 @@ func (rcv *Ping) TimeStamp() int64 {
 	return 0
 }
 
-func (rcv *Ping) MutateTimeStamp(n int64) bool {
+func (rcv *Ping) MutateTimestamp(n int64) bool {
 	return rcv._tab.MutateInt64Slot(4, n)
 }
 
 func PingStart(builder *flatbuffers.Builder) {
 	builder.StartObject(1)
 }
-func PingAddTimeStamp(builder *flatbuffers.Builder, timeStamp int64) {
-	builder.PrependInt64Slot(0, timeStamp, 0)
+func PingAddTimestamp(builder *flatbuffers.Builder, timestamp int64) {
+	builder.PrependInt64Slot(0, timestamp, 0)
 }
 func PingEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

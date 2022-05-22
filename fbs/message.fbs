@@ -3,20 +3,19 @@ namespace fbs;
 union Any { Ping, Pong, Error }
 
 table Ping {
-  time_stamp: int64;
+  timestamp: int64;
 }
 
 table Pong {
-  time_stamp: int64;
+  timestamp: int64;
 }
 
 table Error {
   message: string;
-  time_stamp: int64;
+  timestamp: int64;
 }
 
 table Message {
-  url: string;
   data: Any;
 }
 

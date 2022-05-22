@@ -7,17 +7,14 @@ import (
 )
 
 type MessageT struct {
-	Url string
 	Data *AnyT
 }
 
 func (t *MessageT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	if t == nil { return 0 }
-	urlOffset := builder.CreateString(t.Url)
 	dataOffset := t.Data.Pack(builder)
 	
 	MessageStart(builder)
-	MessageAddUrl(builder, urlOffset)
 	if t.Data != nil {
 		MessageAddDataType(builder, t.Data.Type)
 	}
@@ -26,7 +23,6 @@ func (t *MessageT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 }
 
 func (rcv *Message) UnPackTo(t *MessageT) {
-	t.Url = string(rcv.Url())
 	dataTable := flatbuffers.Table{}
 	if rcv.Data(&dataTable) {
 		t.Data = rcv.DataType().UnPack(dataTable)
@@ -67,16 +63,8 @@ func (rcv *Message) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *Message) Url() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func (rcv *Message) DataType() Any {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return Any(rcv._tab.GetByte(o + rcv._tab.Pos))
 	}
@@ -84,11 +72,11 @@ func (rcv *Message) DataType() Any {
 }
 
 func (rcv *Message) MutateDataType(n Any) bool {
-	return rcv._tab.MutateByteSlot(6, byte(n))
+	return rcv._tab.MutateByteSlot(4, byte(n))
 }
 
 func (rcv *Message) Data(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		rcv._tab.Union(obj, o)
 		return true
@@ -97,16 +85,13 @@ func (rcv *Message) Data(obj *flatbuffers.Table) bool {
 }
 
 func MessageStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
-}
-func MessageAddUrl(builder *flatbuffers.Builder, url flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(url), 0)
+	builder.StartObject(2)
 }
 func MessageAddDataType(builder *flatbuffers.Builder, dataType Any) {
-	builder.PrependByteSlot(1, byte(dataType), 0)
+	builder.PrependByteSlot(0, byte(dataType), 0)
 }
 func MessageAddData(builder *flatbuffers.Builder, data flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(data), 0)
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(data), 0)
 }
 func MessageEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

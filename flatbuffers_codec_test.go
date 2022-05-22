@@ -14,11 +14,10 @@ import (
 
 func TestFlatbuffersMarshal(t *testing.T) {
 	ping := &fbs.PingT{
-		TimeStamp: time.Now().Unix(),
+		Timestamp: time.Now().Unix(),
 	}
 
 	msg := &fbs.MessageT{}
-	msg.Url = "ping"
 
 	// add ping data to message
 	msg.Data = &fbs.AnyT{Type: fbs.AnyPing, Value: ping}
@@ -38,15 +37,13 @@ func TestFlatbuffersMarshal(t *testing.T) {
 func TestFlatbuffersUnmarshale(t *testing.T) {
 	builder := flatbuffers.NewBuilder(0)
 
-	url := builder.CreateString("pong")
 	now := time.Now().Unix()
 
 	fbs.PongStart(builder)
-	fbs.PongAddTimeStamp(builder, now)
+	fbs.PongAddTimestamp(builder, now)
 	pong := fbs.PongEnd(builder)
 
 	fbs.MessageStart(builder)
-	fbs.MessageAddUrl(builder, url)
 	fbs.MessageAddDataType(builder, fbs.AnyPong)
 	fbs.MessageAddData(builder, pong)
 	msg := fbs.MessageEnd(builder)
@@ -62,7 +59,7 @@ func TestFlatbuffersUnmarshale(t *testing.T) {
 	require.Equal(t, "pong", req.TypeURL)
 
 	if d, ok := req.Data.(*fbs.Pong); ok {
-		require.Equal(t, now, d.TimeStamp())
+		require.Equal(t, now, d.Timestamp())
 	}
 }
 
@@ -82,11 +79,10 @@ func TestFlatbuffersCodec(t *testing.T) {
 
 	now := time.Now().Unix()
 	ping := &fbs.PingT{
-		TimeStamp: now,
+		Timestamp: now,
 	}
 
 	msg := &fbs.MessageT{}
-	msg.Url = "ping"
 
 	// add ping data to message
 	msg.Data = &fbs.AnyT{Type: fbs.AnyPing, Value: ping}
@@ -100,7 +96,7 @@ func TestFlatbuffersCodec(t *testing.T) {
 
 	req, err := ReadFrame(r, &FlatbuffersCodec{})
 	require.Equal(t, "pong", req.TypeURL)
-	require.Greater(t, req.Data.(*fbs.PongT).TimeStamp, now)
+	require.Greater(t, req.Data.(*fbs.PongT).Timestamp, now)
 
 	time.Sleep(time.Millisecond * 10)
 }
@@ -112,11 +108,11 @@ func (rr *ttHandler) ServeProto(w ResponseWriter, req *Request) {
 	switch req.TypeURL {
 	case "ping":
 		var msg fbs.PongT
-		msg.TimeStamp = time.Now().Unix()
+		msg.Timestamp = time.Now().Unix()
 		w.Write(&msg)
 	case "pong":
 		var msg fbs.PingT
-		msg.TimeStamp = time.Now().Unix()
+		msg.Timestamp = time.Now().Unix()
 
 		w.Write(&msg)
 		w.(*responseWriter).keepAlive = false

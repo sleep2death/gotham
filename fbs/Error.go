@@ -8,7 +8,7 @@ import (
 
 type ErrorT struct {
 	Message string
-	TimeStamp int64
+	Timestamp int64
 }
 
 func (t *ErrorT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -16,13 +16,13 @@ func (t *ErrorT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	messageOffset := builder.CreateString(t.Message)
 	ErrorStart(builder)
 	ErrorAddMessage(builder, messageOffset)
-	ErrorAddTimeStamp(builder, t.TimeStamp)
+	ErrorAddTimestamp(builder, t.Timestamp)
 	return ErrorEnd(builder)
 }
 
 func (rcv *Error) UnPackTo(t *ErrorT) {
 	t.Message = string(rcv.Message())
-	t.TimeStamp = rcv.TimeStamp()
+	t.Timestamp = rcv.Timestamp()
 }
 
 func (rcv *Error) UnPack() *ErrorT {
@@ -67,7 +67,7 @@ func (rcv *Error) Message() []byte {
 	return nil
 }
 
-func (rcv *Error) TimeStamp() int64 {
+func (rcv *Error) Timestamp() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -75,7 +75,7 @@ func (rcv *Error) TimeStamp() int64 {
 	return 0
 }
 
-func (rcv *Error) MutateTimeStamp(n int64) bool {
+func (rcv *Error) MutateTimestamp(n int64) bool {
 	return rcv._tab.MutateInt64Slot(6, n)
 }
 
@@ -85,8 +85,8 @@ func ErrorStart(builder *flatbuffers.Builder) {
 func ErrorAddMessage(builder *flatbuffers.Builder, message flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(message), 0)
 }
-func ErrorAddTimeStamp(builder *flatbuffers.Builder, timeStamp int64) {
-	builder.PrependInt64Slot(1, timeStamp, 0)
+func ErrorAddTimestamp(builder *flatbuffers.Builder, timestamp int64) {
+	builder.PrependInt64Slot(1, timestamp, 0)
 }
 func ErrorEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

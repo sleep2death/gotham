@@ -12,7 +12,7 @@ type FlatbuffersCodec struct {
 
 func (pc *FlatbuffersCodec) Unmarshal(data []byte, req *Request) error {
 	msgt := fbs.GetRootAsMessage(data, 0).UnPack()
-	req.TypeURL = msgt.Url
+	req.TypeURL = msgt.Data.Type.String()
 	req.Data = msgt.Data
 	return nil
 }
