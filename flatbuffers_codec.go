@@ -11,6 +11,7 @@ type FlatbuffersCodec struct {
 }
 
 func (pc *FlatbuffersCodec) Unmarshal(data []byte, req *Request) error {
+	// fmt.Println("unmarhsal")
 	msgt := fbs.GetRootAsMessage(data, 0).UnPack()
 	req.TypeURL = msgt.Data.Type.String()
 	req.Data = msgt.Data
@@ -18,7 +19,8 @@ func (pc *FlatbuffersCodec) Unmarshal(data []byte, req *Request) error {
 }
 
 func (pc *FlatbuffersCodec) Marshal(data interface{}) ([]byte, error) {
-	if m, ok := data.(fbs.MessageT); ok {
+	// fmt.Println("marshal")
+	if m, ok := data.(*fbs.MessageT); ok {
 		builder := flatbuffers.NewBuilder(0)
 		builder.Finish(m.Pack(builder))
 

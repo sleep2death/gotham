@@ -2,6 +2,7 @@ package gotham
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ func TestFlatbuffersMarshal(t *testing.T) {
 	err := fbc.Unmarshal(builder.FinishedBytes(), req)
 
 	require.NoError(t, err)
-	require.Equal(t, "ping", req.TypeURL)
+	require.Equal(t, "Ping", req.TypeURL)
 }
 
 func TestFlatbuffersUnmarshale(t *testing.T) {
@@ -56,7 +57,7 @@ func TestFlatbuffersUnmarshale(t *testing.T) {
 	err := fbc.Unmarshal(builder.FinishedBytes(), req)
 
 	require.NoError(t, err)
-	require.Equal(t, "pong", req.TypeURL)
+	require.Equal(t, "Pong", req.TypeURL)
 
 	if d, ok := req.Data.(*fbs.Pong); ok {
 		require.Equal(t, now, d.Timestamp())
@@ -64,9 +65,11 @@ func TestFlatbuffersUnmarshale(t *testing.T) {
 }
 
 func TestFlatbuffersCodec(t *testing.T) {
+
 	addr := ":9000"
 	server := &Server{Addr: addr, Handler: &ttHandler{}, Codec: &FlatbuffersCodec{}}
 	go server.ListenAndServe()
+	t.Log("start server...")
 	defer server.Close()
 
 	time.Sleep(time.Millisecond * 5)
@@ -89,16 +92,19 @@ func TestFlatbuffersCodec(t *testing.T) {
 
 	w := bufio.NewWriter(conn)
 	r := bufio.NewReader(conn)
-	WriteFrame(w, msg, &ProtobufCodec{})
+	err = WriteFrame(w, msg, &FlatbuffersCodec{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	w.Flush()
 
 	time.Sleep(time.Millisecond * 10)
 
+	t.Log("start reading...")
 	req, err := ReadFrame(r, &FlatbuffersCodec{})
-	require.Equal(t, "pong", req.TypeURL)
-	require.Greater(t, req.Data.(*fbs.PongT).Timestamp, now)
-
-	time.Sleep(time.Millisecond * 10)
+	require.Equal(t, "Pong", req.TypeURL)
+	// require.Greater(t, req.Data.(*fbs.AnyT).Value.(*fbs.PongT).Timestamp, now)
 }
 
 type ttHandler struct {
@@ -106,15 +112,31 @@ type ttHandler struct {
 
 func (rr *ttHandler) ServeProto(w ResponseWriter, req *Request) {
 	switch req.TypeURL {
-	case "ping":
-		var msg fbs.PongT
-		msg.Timestamp = time.Now().Unix()
-		w.Write(&msg)
-	case "pong":
-		var msg fbs.PingT
-		msg.Timestamp = time.Now().Unix()
+	case "Ping":
+		now := time.Now().Unix()
+		pong := &fbs.PongT{
+			Timestamp: now,
+		}
+		msg := &fbs.MessageT{}
+		// add ping data to message
+		msg.Data = &fbs.AnyT{Type: fbs.AnyPong, Value: pong}
+		err := w.Write(msg)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-		w.Write(&msg)
+		w.(*responseWriter).keepAlive = false
+	case "Pong":
+		ping := &fbs.PingT{
+			Timestamp: time.Now().Unix(),
+		}
+		msg := &fbs.MessageT{}
+		// add ping data to message
+		msg.Data = &fbs.AnyT{Type: fbs.AnyPing, Value: ping}
+		err := w.Write(&msg)
+		if err != nil {
+			fmt.Println(err)
+		}
 		w.(*responseWriter).keepAlive = false
 	default:
 		// log.Println("no url handler found")

@@ -104,6 +104,7 @@ func (srv *Server) Serve(l net.Listener) error {
 
 	for {
 		rw, e := l.Accept()
+
 		if e != nil {
 			select {
 			case <-srv.getDoneChan():
@@ -535,7 +536,7 @@ func (c *conn) serve() {
 			if req != nil {
 				req.conn = c
 				// handle the message to router
-				w := NewResponseWriter(c.bufw, &ProtobufCodec{})
+				w := NewResponseWriter(c.bufw, c.server.Codec)
 
 				if c.server.Handler != nil {
 					c.server.Handler.ServeProto(w, req)
